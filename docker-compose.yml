@@ -1,0 +1,26 @@
+version: '3.9'
+ 
+services:
+  web:
+    # Build the image from the Dockerfile in the current folder
+    build: .
+ 
+    # Name the container for easy reference
+    container_name: ems-web
+ 
+    # Map port 5000 on your Windows machine to port 5000 in the container
+    # Format: host_port:container_port
+    ports:
+      - "5000:5000"
+ 
+    # Load environment variables from your .env file
+    env_file:
+      - .env
+ 
+    # Mount your project folder into the container
+    # Changes you make to files are reflected instantly (no rebuild needed)
+    volumes:
+      - .:/app
+ 
+    # Restart the container automatically if it crashes
+    restart: unless-stopped

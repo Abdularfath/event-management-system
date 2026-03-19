@@ -1,0 +1,33 @@
+/* ── EMS Custom Styles ─────────────────────────────────────────── */
+:root {
+  --ems-primary:    #0d6efd;   /* Bootstrap blue */
+  --ems-primary-dk: #0a58ca;   /* Hover state */
+  --ems-navbar-bg:  #0d47a1;   /* Deep blue navbar */
+  --ems-footer-bg:  #1a237e;   /* Darker blue footer */
+  --ems-card-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+ 
+/* Navbar */
+.ems-navbar { background-color: var(--ems-navbar-bg) !important; }
+.ems-navbar .navbar-brand { font-weight: 700; font-size: 1.4rem; color: #fff !important; }
+.ems-navbar .nav-link { color: rgba(255,255,255,0.85) !important; }
+.ems-navbar .nav-link:hover { color: #fff !important; }
+ 
+/* Cards */
+.ems-card { box-shadow: var(--ems-card-shadow); border: none; border-radius: 10px; }
+ 
+/* Auth pages — centered card */
+.auth-wrapper { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
+.auth-card { width: 100%; max-width: 440px; }
+ 
+/* Footer */
+.ems-footer { background-color: var(--ems-footer-bg); color: rgba(255,255,255,0.75); padding: 1.5rem 0; margin-top: auto; }
+.ems-footer a { color: rgba(255,255,255,0.75); text-decoration: none; }
+.ems-footer a:hover { color: #fff; }
+ 
+/* Body — flex column so footer sticks to bottom */
+body { display: flex; flex-direction: column; min-height: 100vh; }
+main { flex: 1; }
+ 
+/* Flash messages */
+.flash-container { position: fixed; top: 70px; right: 20px; z-index: 9999; min-width: 300px; }

@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}My Venues{% endblock %}
+ 
+{% block content %}
+<div class="container py-4">
+ 
+  {# Page header #}
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">My Venues</h2>
+      <p class="text-muted mb-0">Manage the venues available for your events.</p>
+    </div>
+    <a href="{{ url_for('venues.create_venue') }}" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-2"></i>Add New Venue
+    </a>
+  </div>
+ 
+  {# Empty state #}
+  {% if not venues %}
+  <div class="ems-card card text-center py-5">
+    <i class="bi bi-building fs-1 text-muted mb-3"></i>
+    <h5 class="text-muted">No venues yet</h5>
+    <p class="text-muted small">Add your first venue to get started.</p>
+    <a href="{{ url_for('venues.create_venue') }}" class="btn btn-primary btn-sm">
+      Add First Venue</a>
+  </div>
+ 
+  {% else %}
+  <div class="ems-card card">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th>Name</th>
+            <th>City</th>
+            <th>Capacity</th>
+            <th>Contact</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for venue in venues %}
+          <tr>
+            <td>
+              <strong>{{ venue.name }}</strong>
+              <div class="text-muted small">{{ venue.address }}</div>
+            </td>
+            <td>{{ venue.city }}</td>
+            <td><span class="badge bg-secondary">{{ venue.capacity }} seats</span></td>
+            <td>
+              {% if venue.contact_name %}
+                {{ venue.contact_name }}
+                {% if venue.contact_phone %}<div class="text-muted small">{{ venue.contact_phone }}</div>{% endif %}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {# Edit button #}
+              <a href="{{ url_for('venues.edit_venue', venue_id=venue.id) }}"
+                 class="btn btn-sm btn-outline-primary me-1">
+                <i class="bi bi-pencil me-1"></i>Edit
+              </a>
+              {# Delete form — POST only, with confirmation dialog #}
+              <form method="POST"
+                    action="{{ url_for('venues.delete_venue', venue_id=venue.id) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Delete venue: {{ venue.name }}?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash me-1"></i>Delete
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+ 
+</div>
+{% endblock %}

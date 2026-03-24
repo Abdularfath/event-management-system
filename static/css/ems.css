@@ -31,3 +31,16 @@ main { flex: 1; }
  
 /* Flash messages */
 .flash-container { position: fixed; top: 70px; right: 20px; z-index: 9999; min-width: 300px; }
+
+/* ── Event cards ──────────────────────────────────────────────────── */
+.ems-event-img { height: 180px; object-fit: cover; width: 100%; }
+.ems-event-img-placeholder { height: 180px; width: 100%; }
+ 
+/* ── Ticket type cards ────────────────────────────────────────────── */
+.ems-ticket-card { transition: border-color 0.2s; cursor: pointer; }
+.ems-ticket-card:hover { border-color: var(--ems-primary) !important; }
+ 
+/* ── Responsive tweaks ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sticky-top { position: relative !important; top: 0 !important; }
+}

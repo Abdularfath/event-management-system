@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% block title %}{{ event.name }}{% endblock %}
+ 
+{% block content %}
+<div class="container py-4">
+ 
+  {# Back link #}
+  <a href="{{ url_for('public.index') }}" class="text-decoration-none text-muted mb-3 d-inline-block">
+    <i class="bi bi-arrow-left me-1"></i>Back to Events
+  </a>
+ 
+  <div class="row g-4">
+ 
+    {# ── LEFT COLUMN — event info ────────────────────── #}
+    <div class="col-lg-7">
+ 
+      {# Cover image #}
+      {% if event.cover_image_url %}
+      <img src="{{ event.cover_image_url }}" class="img-fluid rounded-3 mb-4 w-100" style="max-height:320px;object-fit:cover" alt="{{ event.name }}">
+      {% endif %}
+ 
+      {# Event title and meta #}
+      <h2 class="fw-bold">{{ event.name }}</h2>
+      <div class="d-flex flex-wrap gap-3 text-muted mb-4">
+        <span><i class="bi bi-calendar3 me-1"></i>
+          {% if event.start_datetime %}
+            {{ event.start_datetime.strftime('%B %d, %Y  %I:%M %p') }}
+          {% endif %}
+        </span>
+        {% if venue %}
+        <span><i class="bi bi-geo-alt me-1"></i>{{ venue.name }}, {{ venue.city }}</span>
+        {% endif %}
+        {% if event.event_type %}
+        <span class="badge bg-info text-dark">{{ event.event_type | capitalize }}</span>
+        {% endif %}
+      </div>
+ 
+      {# Description box — wireframe shows this in a bordered container #}
+      <div class="ems-card card p-3 mb-4">
+        <h6 class="fw-bold text-muted text-uppercase small mb-2">About this event</h6>
+        <p class="mb-0" style="white-space:pre-line">{{ event.description }}</p>
+      </div>
+ 
+    </div>
+ 
+    {# ── RIGHT COLUMN — ticket selection ────────────── #}
+    <div class="col-lg-5">
+      <div class="ems-card card p-4 sticky-top" style="top:80px">
+        <h5 class="fw-bold mb-3">
+          <i class="bi bi-ticket-perforated me-2 text-primary"></i>Ticket Types
+        </h5>
+ 
+        {# No tickets available #}
+        {% if not ticket_types %}
+        <p class="text-muted">No tickets available yet.</p>
+        {% else %}
+ 
+        {# Ticket type cards — wireframe page 2 #}
+        {% for tt in ticket_types %}
+        <div class="ems-ticket-card mb-3 p-3 border rounded-3 {{ 'opacity-50' if tt.sold_out }}">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="fw-bold mb-1">{{ tt.name }}</h6>
+              {% if tt.description %}
+              <p class="text-muted small mb-1">{{ tt.description }}</p>
+              {% endif %}
+              <p class="text-muted small mb-0">
+                {% if tt.sold_out %}
+                  <span class="text-danger fw-semibold">Sold Out</span>
+                {% else %}
+                  {{ tt.available }} tickets left
+                  &nbsp;|&nbsp; Max {{ tt.max_per_order }} per person
+                {% endif %}
+              </p>
+            </div>
+            <div class="text-end ms-3">
+              <div class="fs-5 fw-bold text-primary">
+                {% if tt.price == 0 %}Free{% else %}₹{{ tt.price }}{% endif %}
+              </div>
+            </div>
+          </div>
+ 
+          {# Select button — only shown if not sold out and user is logged in #}
+          {% if not tt.sold_out %}
+            {% if session.get('uid') %}
+            <button class="btn btn-outline-primary btn-sm mt-2 w-100" disabled>
+                 <i class="bi bi-check-circle me-1"></i>Select & Register
+                 <span class="badge bg-secondary ms-1">Coming soon</span>
+                </button>
+            {% else %}
+            <a href="{{ url_for('auth.login') }}"
+               class="btn btn-outline-secondary btn-sm mt-2 w-100">
+              Login to Register
+            </a>
+            {% endif %}
+          {% endif %}
+        </div>
+        {% endfor %}
+ 
+        {# Promo code input — wireframe page 2 #}
+        <hr class="my-3">
+        <label class="form-label small fw-semibold">Have a promo code?</label>
+        <div class="input-group input-group-sm">
+          <input type="text" id="promoInput" class="form-control text-uppercase"
+                 placeholder="Enter code">
+          <button class="btn btn-outline-secondary" type="button"
+                  onclick="applyPromo()">Apply</button>
+        </div>
+        <div id="promoMsg" class="form-text mt-1"></div>
+ 
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+ 
+{% block extra_js %}
+<script>
+  //# Promo code UI — validation wired to backend on Day 9 #
+  function applyPromo() {
+    const code = document.getElementById('promoInput').value.trim();
+    const msg  = document.getElementById('promoMsg');
+    if (!code) { msg.textContent = 'Please enter a promo code.'; return; }
+    msg.textContent = 'Promo code validation coming on Day 9.';
+    msg.className = 'form-text text-info mt-1';
+  }
+</script>
+{% endblock %}
+{% endblock %}

@@ -23,6 +23,7 @@ from app.routes.attendee import attendee_bp
 from app.routes.admin import admin_bp
 from app.routes.venues import venues_bp
 from app.routes.events import events_bp
+from app.routes.tickets import tickets_bp
  
 app.register_blueprint(test_bp)
 app.register_blueprint(auth_bp)
@@ -32,6 +33,7 @@ app.register_blueprint(venues_bp)
 app.register_blueprint(attendee_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(events_bp)
+app.register_blueprint(tickets_bp)
 
  
 if __name__ == '__main__':

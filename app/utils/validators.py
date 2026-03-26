@@ -106,5 +106,60 @@ def validate_event(data):
  
 # ── Ticket type validator (stub — will be filled on Day 8) ──────────
 def validate_ticket_type(data):
-    # TODO: implement on Day 8
-    return []
+    """
+    Validate ticket type form data.
+    Returns list of error strings. Empty = passed.
+    """
+    errors = []
+ 
+    name       = data.get('name','').strip()
+    price      = data.get('price','').strip()
+    qty_total  = data.get('quantity_total','').strip()
+    max_order  = data.get('max_per_order','').strip()
+ 
+    # Name
+    if not name:
+        errors.append('Ticket name is required.')
+    elif len(name) > 80:
+        errors.append('Ticket name must be under 80 characters.')
+ 
+    # Price
+    if price == '':
+        errors.append('Price is required. Enter 0 for free tickets.')
+    else:
+        try:
+            p = float(price)
+            if p < 0:
+                errors.append('Price cannot be negative.')
+            elif p > 999999:
+                errors.append('Price seems unrealistically high.')
+        except ValueError:
+            errors.append('Price must be a number.')
+ 
+    # Quantity total
+    if not qty_total:
+        errors.append('Total quantity is required.')
+    else:
+        try:
+            q = int(qty_total)
+            if q < 1:
+                errors.append('Total quantity must be at least 1.')
+        except ValueError:
+            errors.append('Total quantity must be a whole number.')
+ 
+    # Max per order
+    if not max_order:
+        errors.append('Max per order is required.')
+    else:
+        try:
+            m = int(max_order)
+            if m < 1:
+                errors.append('Max per order must be at least 1.')
+            # Validate max <= total only when both are valid numbers
+            elif qty_total.isdigit() and m > int(qty_total):
+                errors.append('Max per order cannot exceed total quantity.')
+        except ValueError:
+            errors.append('Max per order must be a whole number.')
+ 
+    return errors
+

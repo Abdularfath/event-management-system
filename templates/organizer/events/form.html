@@ -18,6 +18,14 @@
             <i class="bi bi-calendar-plus me-2 text-primary"></i>
             {{ 'Edit Event' if action=='edit' else 'Create New Event' }}
           </h4>
+          {# Add this block — shows Manage Tickets only when editing #}
+          {% if action == 'edit' %}
+          <a href="{{ url_for('tickets.list_tickets', event_id=event_id) }}"
+             class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-ticket-perforated me-1"></i>Manage Tickets
+          </a>
+          {% endif %}
+
         </div>
  
         {# Wireframe page 7: Save Draft + Publish buttons at top right #}

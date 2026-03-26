@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Ticket Types — {{ event.name }}{% endblock %}
+ 
+{% block content %}
+<div class="container py-4">
+ 
+  {# Breadcrumb #}
+  <nav aria-label="breadcrumb" class="mb-3"><ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('events.list_events') }}">My Events</a></li>
+    <li class="breadcrumb-item active">{{ event.name }} — Ticket Types</li>
+  </ol></nav>
+ 
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">{{ event.name }}</h3>
+      <p class="text-muted mb-0">Manage ticket types for this event.</p>
+    </div>
+    <a href="{{ url_for('tickets.create_ticket', event_id=event_id) }}" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-2"></i>Add Ticket Type
+    </a>
+  </div>
+ 
+  {% if not tickets %}
+  <div class="ems-card card text-center py-5">
+    <i class="bi bi-ticket-perforated fs-1 text-muted mb-3"></i>
+    <h5 class="text-muted">No ticket types yet</h5>
+    <p class="text-muted small">Add your first ticket type to start selling.</p>
+    <a href="{{ url_for('tickets.create_ticket', event_id=event_id) }}" class="btn btn-primary btn-sm">
+      Add First Ticket Type</a>
+  </div>
+ 
+  {% else %}
+  <div class="ems-card card">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th>Name</th><th>Price</th><th>Quantity</th>
+            <th>Sold</th><th>Available</th><th>Status</th><th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for tt in tickets %}
+          <tr class="{{ 'table-secondary' if not tt.is_active }}">
+            <td>
+              <strong>{{ tt.name }}</strong>
+              {% if tt.description %}
+              <div class="text-muted small">{{ tt.description }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if tt.price == 0 %}
+              <span class="badge bg-success">Free</span>
+              {% else %}
+              ₹{{ tt.price | int if tt.price == tt.price | int else tt.price }}
+              {% endif %}
+            </td>
+            <td>{{ tt.quantity_total }}</td>
+            <td>{{ tt.quantity_sold or 0 }}</td>
+            <td>
+              {% set avail = tt.quantity_total - (tt.quantity_sold or 0) %}
+              {% if avail <= 0 %}
+              <span class="badge bg-danger">Sold Out</span>
+              {% elif avail <= 10 %}
+              <span class="badge bg-warning text-dark">{{ avail }} left</span>
+              {% else %}
+              {{ avail }}
+              {% endif %}
+            </td>
+            <td>
+              {% if tt.is_active %}
+              <span class="badge bg-success">Active</span>
+              {% else %}
+              <span class="badge bg-secondary">Inactive</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {# Edit #}
+              <a href="{{ url_for('tickets.edit_ticket', event_id=event_id, tt_id=tt.id) }}"
+                 class="btn btn-sm btn-outline-primary me-1">
+                <i class="bi bi-pencil"></i>
+              </a>
+              {# Toggle active/inactive #}
+              <form method="POST" action="{{ url_for('tickets.toggle_ticket', event_id=event_id, tt_id=tt.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-secondary me-1"
+                        title="{{ 'Deactivate' if tt.is_active else 'Activate' }}">
+                  <i class="bi bi-{{ 'toggle-on' if tt.is_active else 'toggle-off' }}"></i>
+                </button>
+              </form>
+              {# Delete (blocked if sold > 0) #}
+              {% if (tt.quantity_sold or 0) == 0 %}
+              <form method="POST" action="{{ url_for('tickets.delete_ticket', event_id=event_id, tt_id=tt.id) }}" class="d-inline"
+                    onsubmit="return confirm('Delete ticket: {{ tt.name }}?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

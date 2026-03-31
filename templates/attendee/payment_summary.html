@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Complete Payment — {{ event.name }}{% endblock %}
+ 
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+ 
+      <div class="ems-card card p-4">
+        <h4 class="fw-bold mb-4 text-center">
+          <i class="bi bi-receipt me-2 text-primary"></i>Complete Payment
+        </h4>
+ 
+        {# Order summary — wireframe page 4 #}
+        <div class="border rounded p-3 mb-4 bg-light">
+          <h6 class="fw-bold text-muted text-uppercase small mb-3">Order Summary</h6>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Event</span>
+            <span class="fw-semibold">{{ event.get('name','') }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Ticket</span>
+            <span>{{ reg.ticket_type_name }} x {{ reg.quantity }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Subtotal</span>
+            <span>₹{{ reg.subtotal }}</span>
+          </div>
+          {% if reg.discount_amount and reg.discount_amount > 0 %}
+          <div class="d-flex justify-content-between mb-2 text-success">
+            <span>Discount ({{ reg.promo_code_used }})</span>
+            <span>-₹{{ reg.discount_amount }}</span>
+          </div>
+          {% endif %}
+          <hr>
+          <div class="d-flex justify-content-between fw-bold fs-5">
+            <span>Total</span>
+            <span class="text-primary">₹{{ reg.total_amount }}</span>
+          </div>
+          <div class="text-muted small mt-2">Order #: {{ reg.order_number }}</div>
+        </div>
+ 
+        {# PayPal button — placeholder today, wired on Day 10 #}
+        <div id="paypal-button-container" class="mb-3">
+          <div class="alert alert-info text-center">
+            <i class="bi bi-paypal me-2"></i>
+            PayPal payment integration coming on Day 10.
+            <br><small class="text-muted">Registration ID: {{ registration_id }}</small>
+          </div>
+        </div>
+ 
+        <p class="text-muted small text-center">
+          By completing this purchase, you agree to our
+          <a href="#">Terms and Conditions</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

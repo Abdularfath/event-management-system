@@ -83,10 +83,11 @@
           {# Select button — only shown if not sold out and user is logged in #}
           {% if not tt.sold_out %}
             {% if session.get('uid') %}
-            <button class="btn btn-outline-primary btn-sm mt-2 w-100" disabled>
-                 <i class="bi bi-check-circle me-1"></i>Select & Register
-                 <span class="badge bg-secondary ms-1">Coming soon</span>
-                </button>
+            <a href="{{ url_for('registration.register', event_id=event.id, ticket_type_id=tt.id) }}"
+            class="btn btn-outline-primary btn-sm mt-2 w-100">
+            <i class="bi bi-check-circle me-1"></i>Select & Register
+          </a>
+
             {% else %}
             <a href="{{ url_for('auth.login') }}"
                class="btn btn-outline-secondary btn-sm mt-2 w-100">

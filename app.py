@@ -10,6 +10,10 @@ load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-change-this')
 csrf = CSRFProtect(app)
+# Allow CSRF token in request headers (needed for fetch() AJAX calls)
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+  # scanner JS sends token in header, not form
+
  
 # Initialise Firebase
 init_firebase()
@@ -24,6 +28,7 @@ from app.routes.admin import admin_bp
 from app.routes.venues import venues_bp
 from app.routes.events import events_bp
 from app.routes.tickets import tickets_bp
+from app.routes.checkin import checkin_bp
  
 app.register_blueprint(test_bp)
 app.register_blueprint(auth_bp)
@@ -34,7 +39,9 @@ app.register_blueprint(attendee_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(events_bp)
 app.register_blueprint(tickets_bp)
+app.register_blueprint(checkin_bp)
 
- 
+csrf.exempt(checkin_bp)
+ # scanner JS sends token in header, not form
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

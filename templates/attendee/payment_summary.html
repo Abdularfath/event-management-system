@@ -1,60 +1,173 @@
 {% extends 'base.html' %}
-{% block title %}Complete Payment — {{ event.name }}{% endblock %}
- 
+
+{% block title %}Payment Summary - EMS{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-  <div class="row justify-content-center">
-    <div class="col-lg-6">
- 
-      <div class="ems-card card p-4">
-        <h4 class="fw-bold mb-4 text-center">
-          <i class="bi bi-receipt me-2 text-primary"></i>Complete Payment
-        </h4>
- 
-        {# Order summary — wireframe page 4 #}
-        <div class="border rounded p-3 mb-4 bg-light">
-          <h6 class="fw-bold text-muted text-uppercase small mb-3">Order Summary</h6>
-          <div class="d-flex justify-content-between mb-2">
-            <span class="text-muted">Event</span>
-            <span class="fw-semibold">{{ event.get('name','') }}</span>
-          </div>
-          <div class="d-flex justify-content-between mb-2">
-            <span class="text-muted">Ticket</span>
-            <span>{{ reg.ticket_type_name }} x {{ reg.quantity }}</span>
-          </div>
-          <div class="d-flex justify-content-between mb-2">
-            <span class="text-muted">Subtotal</span>
-            <span>₹{{ reg.subtotal }}</span>
-          </div>
-          {% if reg.discount_amount and reg.discount_amount > 0 %}
-          <div class="d-flex justify-content-between mb-2 text-success">
-            <span>Discount ({{ reg.promo_code_used }})</span>
-            <span>-₹{{ reg.discount_amount }}</span>
-          </div>
-          {% endif %}
-          <hr>
-          <div class="d-flex justify-content-between fw-bold fs-5">
-            <span>Total</span>
-            <span class="text-primary">₹{{ reg.total_amount }}</span>
-          </div>
-          <div class="text-muted small mt-2">Order #: {{ reg.order_number }}</div>
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Payment Summary</h5>
+                </div>
+
+                <div class="card-body">
+                    <!-- Event & Ticket Info -->
+                    <div class="mb-4">
+                        <h6 class="text-muted">Event</h6>
+                        <p class="lead mb-0"><strong>{{ event.name }}</strong></p>
+                    </div>
+
+                    <!-- Order Breakdown -->
+                    <div class="mb-4">
+                        <h6 class="text-muted">Order Details</h6>
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td>Ticket Type:</td>
+                                <td class="text-end"><strong>{{ registration.ticket_type_name }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Quantity:</td>
+                                <td class="text-end">{{ registration.quantity }}</td>
+                            </tr>
+                            <tr>
+                                <td>Price per ticket:</td>
+                                <td class="text-end">₹{{ "%.2f"|format(ticket_price) }}</td>
+                            </tr>
+                            <tr class="border-top">
+                                <td><strong>Subtotal:</strong></td>
+                                <td class="text-end"><strong>₹{{ "%.2f"|format(subtotal) }}</strong></td>
+                            </tr>
+                            {% if discount > 0 %}
+                            <tr class="text-success">
+                                <td>Discount ({{ promo_code }}):</td>
+                                <td class="text-end">-₹{{ "%.2f"|format(discount) }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr class="border-top">
+                                <td><strong>Total Amount (INR):</strong></td>
+                                <td class="text-end"><strong class="text-success" style="font-size: 1.3em;">₹{{ "%.2f"|format(registration.total_amount) }}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Attendee Info -->
+                    <div class="mb-4">
+                        <h6 class="text-muted">Attendee</h6>
+                        <p class="mb-1"><strong>{{ registration.attendee_name }}</strong></p>
+                        <p class="text-muted small mb-0">{{ registration.attendee_email }}</p>
+                    </div>
+
+                    <!-- Razorpay Payment Button -->
+                    <div class="d-grid gap-2 mb-3">
+                        <button id="razorpay-button" class="btn btn-success btn-lg" onclick="initiatePayment()">
+                            <i class="bi bi-credit-card"></i> Pay ₹{{ "%.2f"|format(registration.total_amount) }} with Razorpay
+                        </button>
+                    </div>
+
+                                       <!-- Back Button -->
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('registration.register', event_id=event.id, ticket_type_id=registration.ticket_type_id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </a>
+                    </div>
+                    
+                    <!-- Security Info -->
+                    <p class="text-muted small mt-3 text-center">
+                        <i class="bi bi-shield-check"></i> Your payment is processed securely by Razorpay
+                    </p>
+                </div>
+            </div>
         </div>
- 
-        {# PayPal button — placeholder today, wired on Day 10 #}
-        <div id="paypal-button-container" class="mb-3">
-          <div class="alert alert-info text-center">
-            <i class="bi bi-paypal me-2"></i>
-            PayPal payment integration coming on Day 10.
-            <br><small class="text-muted">Registration ID: {{ registration_id }}</small>
-          </div>
-        </div>
- 
-        <p class="text-muted small text-center">
-          By completing this purchase, you agree to our
-          <a href="#">Terms and Conditions</a>.
-        </p>
-      </div>
     </div>
-  </div>
 </div>
+
+<!-- Razorpay Checkout Script -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+    const registrationId = "{{ registration_id }}";
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    function initiatePayment() {
+        // Step 1: Create order on backend
+        fetch(`/attendee/payment/${registrationId}/create-order`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                alert('Error creating order: ' + data.error);
+                return;
+            }
+
+            // Step 2: Open Razorpay Checkout
+            const options = {
+                'key': data.key_id,
+                'amount': data.amount,  // in paise
+                'currency': data.currency,
+                'name': 'Event Management System',
+                'description': '{{ event.name }}',
+                'order_id': data.order_id,
+                'prefill': {
+                    'email': data.email,
+                    'name': '{{ registration.attendee_name }}'
+                },
+                'theme': {
+                    'color': '#007bff'
+                },
+                'handler': function(response) {
+                    // Step 3: Payment successful — capture on backend
+                    capturePayment(response);
+                },
+                'modal': {
+                    'ondismiss': function() {
+                        console.log('Payment cancelled');
+                    }
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+        });
+    }
+
+    function capturePayment(response) {
+        // Send payment details to backend for verification
+        fetch(`/attendee/payment/${registrationId}/capture`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                'razorpay_order_id': response.razorpay_order_id,
+                'razorpay_payment_id': response.razorpay_payment_id,
+                'razorpay_signature': response.razorpay_signature
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirect to success page
+                window.location.href = `/attendee/payment/success/${registrationId}`;
+            } else {
+                alert('Payment verification failed: ' + data.error);
+                window.location.href = `/attendee/payment/failed/${registrationId}`;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+        });
+    }
+</script>
 {% endblock %}

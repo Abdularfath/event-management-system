@@ -78,6 +78,10 @@ def event_detail(event_id):
         available = tt.get('quantity_total', 0) - tt.get('quantity_sold', 0)
         tt['available'] = max(0, available)
         tt['sold_out']  = available <= 0
+
+         # ADD THIS DEBUG LINE:
+    print(f"[DEBUG] Event object keys: {event.keys()}")
+    print(f"[DEBUG] Event ID from object: {event.get('id', 'NOT FOUND')}")
  
     return render_template('public/event_detail.html',
                            event=event,

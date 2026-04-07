@@ -12,6 +12,9 @@ sendgrid==6.11.0
  
 # QR code generation
 qrcode[pil]==7.4.2
+
+# Cloudinary — image/QR code storage
+cloudinary==1.36.0
  
 # Environment variable loading from .env file
 python-dotenv==1.0.1

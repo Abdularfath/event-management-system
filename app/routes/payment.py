@@ -14,6 +14,9 @@ from app.utils.razorpay_utils import (
 import os
 from dotenv import load_dotenv
 from google.cloud.firestore import Increment  # ← ADD THIS if missing
+from flask import render_template
+from app.utils.qr_utils import generate_and_upload_qr
+from app.utils.email_utils import send_ticket_email
 
 load_dotenv()
 
@@ -101,11 +104,9 @@ def capture_payment(registration_id):
     # Security: verify user owns this registration
     owns, result = verify_registration_owner(registration_id, user_uid)
     if not owns:
-        print(f"[ERROR CAPTURE] Not owner: {result}")
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     reg_data = result
-    print(f"[DEBUG CAPTURE] Registration found: {registration_id}")
     
     # Get payment data from request
     data = request.get_json()
@@ -113,45 +114,38 @@ def capture_payment(registration_id):
     razorpay_payment_id = data.get('razorpay_payment_id')
     razorpay_signature = data.get('razorpay_signature')
     
-    print(f"[DEBUG CAPTURE] Order ID: {razorpay_order_id}")
-    print(f"[DEBUG CAPTURE] Payment ID: {razorpay_payment_id}")
-    print(f"[DEBUG CAPTURE] Signature: {razorpay_signature}")
-    
     # Step 1: Verify Razorpay signature
-    print(f"[DEBUG CAPTURE] Starting signature verification...")
     sig_valid = verify_payment_signature(razorpay_order_id, razorpay_payment_id, razorpay_signature)
-    print(f"[DEBUG CAPTURE] Signature valid: {sig_valid}")
-    
     if not sig_valid:
-        print(f"[ERROR CAPTURE] Invalid signature!")
         return jsonify({'success': False, 'error': 'Payment verification failed'}), 400
     
     # Step 2: Fetch payment details
-    print(f"[DEBUG CAPTURE] Fetching payment details...")
     payment_details = get_payment_details(razorpay_payment_id)
-    print(f"[DEBUG CAPTURE] Payment details: {payment_details}")
-    
     if not payment_details['success']:
-        print(f"[ERROR CAPTURE] Could not fetch payment details")
         return jsonify({'success': False, 'error': 'Could not fetch payment details'}), 500
     
     # Step 3: Verify amount
     captured_amount = payment_details['amount'] / 100
     expected_amount = reg_data.get('total_amount', 0)
-    print(f"[DEBUG CAPTURE] Captured: {captured_amount}, Expected: {expected_amount}")
     
     if abs(captured_amount - expected_amount) > 0.01:
-        print(f"[ERROR CAPTURE] Amount mismatch!")
         return jsonify({'success': False, 'error': 'Amount mismatch'}), 400
     
-    # Step 4: Update registration
-    print(f"[DEBUG CAPTURE] Updating registration status...")
+    # ── NEW: Generate and Upload QR Code to Cloudinary ──
+    print(f"[DEBUG CAPTURE] Generating QR code...")
+    event_id = reg_data.get('event_id')
+    qr_url, qr_payload = generate_and_upload_qr(registration_id, event_id)
+    print(f"[DEBUG CAPTURE] QR URL: {qr_url}")
+    
+    # Step 4: Update registration in Firestore
     try:
         db.collection('registrations').document(registration_id).update({
             'status': 'confirmed',
             'payment_status': 'paid',
             'razorpay_payment_id': razorpay_payment_id,
-            'razorpay_order_id': razorpay_order_id
+            'razorpay_order_id': razorpay_order_id,
+            'qr_code_url': qr_url,       # Save Cloudinary URL
+            'qr_payload': qr_payload     # Save secure HMAC payload
         })
         print(f"[DEBUG CAPTURE] Registration updated ✓")
     except Exception as e:
@@ -159,34 +153,53 @@ def capture_payment(registration_id):
         return jsonify({'success': False, 'error': 'Database update failed'}), 500
     
     # Step 5: Increment event counters
-    print(f"[DEBUG CAPTURE] Incrementing event counters...")
     try:
-        event_id = reg_data.get('event_id')
         quantity = int(reg_data.get('quantity', 1))
         ticket_type_id = reg_data.get('ticket_type_id')
-        
-        print(f"[DEBUG CAPTURE] Event ID: {event_id}")
-        print(f"[DEBUG CAPTURE] Amount to add: {captured_amount}")
-        print(f"[DEBUG CAPTURE] Quantity: {quantity}")
         
         # Update event
         db.collection('events').document(event_id).update({
             'total_registrations': Increment(1),
             'total_revenue': Increment(captured_amount)
         })
-        print(f"[DEBUG CAPTURE] Event metrics updated ✓")
         
         # Update ticket type
         if ticket_type_id:
             db.collection('events').document(event_id).collection('ticket_types').document(ticket_type_id).update({
                 'quantity_sold': Increment(quantity)
             })
-            print(f"[DEBUG CAPTURE] Ticket type updated ✓")
-        
     except Exception as e:
         print(f"[ERROR CAPTURE] Counter update failed: {str(e)}")
-        import traceback
-        traceback.print_exc()
+
+    # ── NEW: Send Confirmation Email ──
+    print(f"[DEBUG CAPTURE] Sending confirmation email...")
+    try:
+        # Fetch the fully updated registration so it contains the qr_code_url
+        updated_reg_doc = db.collection('registrations').document(registration_id).get()
+        updated_reg = updated_reg_doc.to_dict()
+        
+        # Fetch event details for the email template
+        event_doc = db.collection('events').document(event_id).get()
+        event_data = event_doc.to_dict() if event_doc.exists else {}
+        
+        # Render the HTML email template
+        email_html = render_template(
+            'emails/confirmation.html',
+            registration=updated_reg,
+            event=event_data,
+            registration_id=registration_id,
+            qr_url=qr_url 
+        )
+        
+        # Send Email
+        email_sent = send_ticket_email(
+            to_email=updated_reg.get('attendee_email'),
+            subject=f"Your Ticket for {event_data.get('name', 'Event')}",
+            html_content=email_html
+        )
+        print(f"[DEBUG CAPTURE] Email sent status: {email_sent}")
+    except Exception as e:
+        print(f"[ERROR CAPTURE] Failed to send confirmation email: {e}")
     
     print(f"[DEBUG CAPTURE] Capture complete ✓")
     return jsonify({

@@ -1,0 +1,40 @@
+================================================================================
+                    ✅ REGISTRATION CONFIRMED!
+================================================================================
+
+Hello {{ attendee_name }},
+
+Thank you for registering! Your registration has been confirmed and payment
+has been successfully processed.
+
+EVENT DETAILS
+================================================================================
+Event:        {{ event_name }}
+Date:         {{ event_date }}
+Time:         {{ event_time }}
+Location:     {{ event_location }}
+Ticket Type:  {{ ticket_type }}
+Amount Paid:  ₹{{ amount_paid }}
+
+YOUR CHECK-IN QR CODE
+================================================================================
+Please save the QR code attached to this email. You'll need to scan it during
+check-in at the event.
+
+QR Code has been sent as an attachment/image in the HTML version of this email.
+
+NEXT STEPS
+================================================================================
+1. Save this email or take a screenshot of the QR code
+2. Bring the QR code to the event venue
+3. Staff will scan your QR code during check-in
+4. If you have questions, contact us: {{ support_email }}
+
+EVENT LINK
+================================================================================
+{{ event_url }}
+
+================================================================================
+This is an automated email. Please do not reply directly.
+© {{ current_year }} Event Management System. All rights reserved.
+================================================================================

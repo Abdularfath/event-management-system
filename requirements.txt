@@ -18,3 +18,5 @@ python-dotenv==1.0.1
  
 # CSRF protection for forms
 Flask-WTF==1.2.1
+
+cloudinary==1.39.0

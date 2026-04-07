@@ -21,14 +21,14 @@
                     <h5 class="card-title mb-4">Your Ticket</h5>
 
                     <!-- QR Code Placeholder (will be generated and stored in Firestore) -->
-                    <div class="mb-4">
-                        <div style="width: 200px; height: 200px; margin: 0 auto; background: #f0f0f0; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
-                            <div class="text-muted">
-                                <p><small>QR Code</small></p>
-                                <p><small>(Generated and sent via email)</small></p>
-                            </div>
+                    <div class="text-center my-4">
+                         <p class="text-muted mb-2">Scan this QR code at the venue</p>
+                         {% if registration.qr_code_url %}
+                         <img src="{{ registration.qr_code_url }}" alt="Ticket QR Code" class="img-fluid border p-2 rounded" style="max-width: 250px;">
+                         {% else %}
+                         <div class="alert alert-warning">QR Code is generating... Please refresh the page in a moment.</div>
+                         {% endif %}
                         </div>
-                    </div>
 
                     <!-- Registration Details -->
                     <table class="table table-sm text-start">

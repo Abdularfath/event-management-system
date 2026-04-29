@@ -1,126 +1,107 @@
 {% extends 'base.html' %}
-{% block title %}Check-In — {{ event.name }}{% endblock %}
- 
+{% block title %}Check-In Scanner{% endblock %}
+
 {% block content %}
 <div class="container py-4">
- 
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h3 class="fw-bold mb-1">Check-In: {{ event.name }}</h3>
-      <p class="text-muted mb-0">Scan attendee QR codes or search manually.</p>
-    </div>
-    <a href="{{ url_for('checkin.checkin_log', event_id=event_id) }}" class="btn btn-outline-primary">
-      <i class="bi bi-list-check me-1"></i>View Log
-    </a>
-  </div>
- 
-  <div class="row g-4">
- 
-    {# ── Camera scanner column ─── #}
-    <div class="col-lg-6">
-      <div class="ems-card card p-3">
-        <h5 class="fw-bold mb-3"><i class="bi bi-qr-code-scan me-2 text-primary"></i>QR Scanner</h5>
-        {# Camera feed — html5-qrcode renders here #}
-        <div id="qr-reader" style="width:100%;border-radius:8px;overflow:hidden"></div>
-        <div id="scan-result" class="mt-3 p-3 rounded d-none">
-          <strong id="scan-name"></strong>
-          <p id="scan-msg" class="mb-0 small"></p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1"><i class="bi bi-qr-code-scan me-2 text-primary"></i>Check-In Scanner</h3>
+            <p class="text-muted mb-0">Scanning tickets for: <strong>{{ event.name }}</strong></p>
         </div>
-        <button id="switch-camera" class="btn btn-sm btn-outline-secondary mt-2 d-none">
-          <i class="bi bi-arrow-repeat me-1"></i>Switch Camera
-        </button>
-      </div>
+        <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-secondary">Back to Events</a>
     </div>
- 
-    {# ── Manual entry column ──── #}
-    <div class="col-lg-6">
-      <div class="ems-card card p-3 mb-3">
-        <h5 class="fw-bold mb-3"><i class="bi bi-search me-2 text-primary"></i>Manual Entry</h5>
-        <form method="POST" action="{{ url_for('checkin.manual_checkin', event_id=event_id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <div class="input-group">
-            <input type="text" name="query" class="form-control"
-                   placeholder="Enter email address..." required>
-            <button type="submit" class="btn btn-primary">
-              <i class="bi bi-check-lg me-1"></i>Check In
-            </button>
-          </div>
-          <div class="form-text">Enter the attendee's registered email address.</div>
-        </form>
-      </div>
- 
-      {# Recent check-ins live list — updated on each scan #}
-      <div class="ems-card card p-3">
-        <h6 class="fw-bold mb-3">Recent Check-Ins</h6>
-        <ul id="recent-list" class="list-group list-group-flush">
-          <li class="list-group-item text-muted small" id="no-scans">No scans yet this session.</li>
-        </ul>
-      </div>
+
+    <div class="row">
+        <!-- Camera Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div id="reader" width="100%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="fw-bold border-bottom pb-2">Scan Results</h5>
+                    
+                    <!-- THIS IS THE BOX THAT TURNS RED/GREEN -->
+                    <div id="result-message" class="alert alert-secondary mt-3 fs-5 text-center" role="alert">
+                        Ready. Point camera at a ticket.
+                    </div>
+                    
+                    <ul class="list-group mt-3 d-none" id="attendee-details">
+                        <li class="list-group-item fs-5"><strong>Name:</strong> <span id="r-name" class="float-end">-</span></li>
+                        <li class="list-group-item fs-5"><strong>Ticket:</strong> <span id="r-ticket" class="float-end">-</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
- 
-{% block extra_js %}
-{# html5-qrcode library for browser camera scanning #}
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<!-- Load HTML5 QR Code Library -->
+<script src="https://unpkg.com/html5-qrcode"></script>
 <script>
-  const EVENT_ID  = '{{ event_id }}';
-  const SCAN_URL  = '{{ url_for("checkin.scan_qr", event_id=event_id) }}';
-  const CSRF_TOKEN = document.querySelector('[name=csrf_token]') ?
-                     document.querySelector('[name=csrf_token]').value : '';
- 
-  let lastScanned = '';  // prevent duplicate scans
-  let scanCooldown = false;
- 
-  const html5QrCode = new Html5Qrcode('qr-reader');
- 
-  // Start the camera scanner
-  html5QrCode.start(
-    { facingMode: 'environment' },  // use rear camera on mobile
-    { fps: 10, qrbox: { width: 250, height: 250 } },
-    async (decodedText) => {
-      // Ignore if same QR scanned within 3 seconds
-      if (decodedText === lastScanned || scanCooldown) return;
-      lastScanned = decodedText;
-      scanCooldown = true;
-      setTimeout(() => { scanCooldown = false; lastScanned = ''; }, 3000);
- 
-      // Send scanned payload to Flask for verification
-      try {
-        const resp = await fetch(SCAN_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
-          body: JSON.stringify({ payload: decodedText })
+    const eventId = "{{ event_id }}";
+    const resultAlert = document.getElementById('result-message');
+    const detailsList = document.getElementById('attendee-details');
+    const rName = document.getElementById('r-name');
+    const rTicket = document.getElementById('r-ticket');
+    
+    let isScanning = true;
+
+    function onScanSuccess(decodedText, decodedResult) {
+        if (!isScanning) return;
+        isScanning = false;
+        
+        detailsList.classList.add('d-none');
+        resultAlert.className = 'alert alert-info text-center fs-5 mt-3';
+        resultAlert.innerText = 'Verifying Ticket...';
+
+        fetch(`/organizer/events/${eventId}/checkin/verify`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ qr_payload: decodedText })
+        })
+                .then(res => res.json())
+        .then(data => {
+            console.log("Server Response:", data);
+            
+            // ADD THIS LINE FOR A TRUE POPUP:
+            alert(data.message);
+            
+            if (data.success) {
+                resultAlert.className = 'alert alert-success fw-bold text-center fs-5 mt-3';
+                resultAlert.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>${data.message}`;
+                rName.innerText = data.attendee_name;
+                rTicket.innerText = data.ticket_type;
+                detailsList.classList.remove('d-none');
+            } else {
+                resultAlert.className = 'alert alert-danger fw-bold text-center fs-5 mt-3';
+                resultAlert.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>${data.message}`;
+                detailsList.classList.add('d-none');
+            }
+            
+            setTimeout(() => { isScanning = true; }, 3000);
+        })
+        .catch(err => {
+            console.error("Fetch Error:", err);
+            resultAlert.className = 'alert alert-danger text-center fs-5 mt-3';
+            resultAlert.innerText = 'Error connecting to server.';
+            setTimeout(() => { isScanning = true; }, 3000);
         });
-        const data = await resp.json();
-        showResult(data.success, data.message, data.name || '');
-        if (data.success) addToRecentList(data.name);
-      } catch(e) {
-        showResult(false, 'Network error. Try manual check-in.', '');
-      }
-    },
-    (err) => {}  // ignore scan errors (camera noise)
-  ).catch(err => {
-    document.getElementById('qr-reader').innerHTML =
-      '<p class="text-warning p-3">Camera not available. Use manual check-in below.</p>';
-  });
- 
-  function showResult(success, message, name) {
-    const box = document.getElementById('scan-result');
-    box.className = `mt-3 p-3 rounded alert alert-${success ? 'success' : 'danger'}`;
-    document.getElementById('scan-name').textContent = name ? name + ' — ' : '';
-    document.getElementById('scan-msg').textContent  = message;
-  }
- 
-  function addToRecentList(name) {
-    document.getElementById('no-scans').remove();
-    const now = new Date().toLocaleTimeString();
-    const li = document.createElement('li');
-    li.className = 'list-group-item d-flex justify-content-between small';
-    li.innerHTML = `<span><i class='bi bi-check-circle text-success me-2'></i>${name}</span>
-                    <span class='text-muted'>${now}</span>`;
-    document.getElementById('recent-list').prepend(li);
-  }
+    }
+
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 10, qrbox: {width: 250, height: 250} },
+        /* verbose= */ false);
+    html5QrcodeScanner.render(onScanSuccess);
 </script>
-{% endblock %}
 {% endblock %}

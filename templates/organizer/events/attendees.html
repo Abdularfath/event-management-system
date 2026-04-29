@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Attendee List{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('events.list_events') }}">My Events</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Attendees</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold mb-0"><i class="bi bi-people-fill me-2 text-primary"></i>Attendees: {{ event.name }}</h3>
+        </div>
+        
+        <div>
+            <a href="{{ url_for('events.export_attendees', event_id=event_id) }}" class="btn btn-success">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Download CSV
+            </a>
+            <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-secondary ms-2">Back</a>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="px-4 py-3">Attendee</th>
+                        <th>Ticket Type</th>
+                        <th>Qty</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if attendees %}
+                        {% for reg in attendees %}
+                        <tr>
+                            <td class="px-4 py-3">
+                                <div class="fw-bold">{{ reg.attendee_name }}</div>
+                                <div class="text-muted small">{{ reg.attendee_email }}</div>
+                                <div class="text-muted small" style="font-size: 0.75rem;">ID: {{ reg.id }}</div>
+                            </td>
+                            <td>{{ reg.ticket_type_name }}</td>
+                            <td>{{ reg.quantity }}</td>
+                            <td>₹{{ reg.total_amount }}</td>
+                            <td>
+                                {% if reg.created_at %}
+                                    {{ reg.created_at.strftime('%b %d, %Y') }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if reg.status == 'checked_in' %}
+                                    <span class="badge bg-success"><i class="bi bi-check-all me-1"></i>Checked In</span>
+                                {% elif reg.status == 'confirmed' %}
+                                    <span class="badge bg-primary">Confirmed</span>
+                                {% elif reg.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ reg.status | capitalize }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                No attendees have registered for this event yet.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

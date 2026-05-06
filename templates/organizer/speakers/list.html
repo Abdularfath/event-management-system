@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Manage Speakers{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold"><i class="bi bi-mic me-2 text-primary"></i>Speakers</h3>
+            <p class="text-muted">Manage your global list of event speakers</p>
+        </div>
+        <a href="{{ url_for('speakers.add_speaker') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Add Speaker
+        </a>
+    </div>
+
+    <div class="row">
+        {% for speaker in speakers %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm border-0 text-center p-3">
+                <div class="card-body">
+                    {% if speaker.image_url %}
+                        <!-- The image is perfectly cropped to 200x200 by Cloudinary! -->
+                        <img src="{{ speaker.image_url }}" alt="{{ speaker.name }}" class="rounded-circle mb-3 border" style="width: 120px; height: 120px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto mb-3 border" style="width: 120px; height: 120px;">
+                            <i class="bi bi-person text-secondary fs-1"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <h5 class="card-title fw-bold mb-1">{{ speaker.name }}</h5>
+                    <p class="text-muted small mb-2"><i class="bi bi-building me-1"></i>{{ speaker.company }}</p>
+                    <p class="card-text small text-start">{{ speaker.bio }}</p>
+                </div>
+                <div class="card-footer bg-white border-0 mt-auto">
+                    <form action="{{ url_for('speakers.delete_speaker', speaker_id=speaker.id) }}" method="POST" onsubmit="return confirm('Delete this speaker?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-sm btn-outline-danger w-100"><i class="bi bi-trash"></i> Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <i class="bi bi-mic-mute fs-1 text-muted d-block mb-3"></i>
+            <h5 class="text-muted">No speakers added yet.</h5>
+            <a href="{{ url_for('speakers.add_speaker') }}" class="btn btn-outline-primary mt-2">Add your first speaker</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

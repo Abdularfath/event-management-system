@@ -31,6 +31,7 @@ from app.routes.tickets import tickets_bp
 from app.routes.checkin import checkin_bp
 from app.routes.registration import registration_bp
 from app.routes.payment import payment_bp
+from app.routes.sessions import sessions_bp 
  
 app.register_blueprint(test_bp)
 app.register_blueprint(auth_bp)
@@ -44,6 +45,7 @@ app.register_blueprint(tickets_bp)
 app.register_blueprint(checkin_bp)
 app.register_blueprint(registration_bp)
 app.register_blueprint(payment_bp)
+app.register_blueprint(sessions_bp)
 
 csrf.exempt(checkin_bp)
  # scanner JS sends token in header, not form

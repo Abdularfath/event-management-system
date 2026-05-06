@@ -27,7 +27,7 @@
     <div class="container">
       {# Brand / Logo #}
       <a class="navbar-brand" href="{{ url_for('public.index') }}">
-        <i class="bi bi-calendar-event me-2"></i>EMS
+        <i class="bi bi-calendar-event me-2"></i>Unified Event Lifecycle Management System
       </a>
  
       {# Mobile hamburger button #}
@@ -67,12 +67,14 @@
               </a></li>
             {% endif %}
  
-            {# Attendee / all logged-in users #}
+                        {# Attendee links #}
+            {% if session.get('role') == 'attendee' %}
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('attendee.my_events') }}">
-                <i class="bi bi-ticket-perforated me-1"></i>My Events
+                <i class="bi bi-ticket-perforated me-1"></i>My Tickets
               </a></li>
- 
+            {% endif %}
+            
             {# User dropdown #}
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">

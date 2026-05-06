@@ -67,6 +67,11 @@
          class="btn btn-sm btn-outline-dark">
          <i class="bi bi-qr-code-scan me-1"></i>Scanner
         </a>
+        
+        <a href="{{ url_for('sessions.list_sessions', event_id=event.id) }}" 
+        class="btn btn-sm btn-outline-success">
+        <i class="bi bi-calendar-event me-1"></i>Agenda
+      </a>
         {% endif %}
 
         {% if event.status == 'draft' %}

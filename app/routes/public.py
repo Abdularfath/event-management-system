@@ -82,9 +82,40 @@ def event_detail(event_id):
          # ADD THIS DEBUG LINE:
     print(f"[DEBUG] Event object keys: {event.keys()}")
     print(f"[DEBUG] Event ID from object: {event.get('id', 'NOT FOUND')}")
+
+        # 1. Fetch Agenda / Sessions
+    sessions_ref = db.collection('events').document(event_id).collection('sessions').order_by('date').order_by('start_time').stream()
+    agenda = []
+    
+    for s in sessions_ref:
+        s_dict = s.to_dict()
+        s_dict['id'] = s.id
+        
+        # 2. Fetch assigned speakers for this session
+        speakers = []
+        sp_docs = s.reference.collection('session_speakers').stream()
+        for sp in sp_docs:
+            sp_id = sp.to_dict().get('speaker_id')
+            speaker_doc = db.collection('speakers').document(sp_id).get()
+            if speaker_doc.exists:
+                speakers.append({**speaker_doc.to_dict(), 'id': speaker_doc.id})
+        
+        s_dict['speakers'] = speakers
+        agenda.append(s_dict)
+
+    # 3. Fetch user's saved sessions (if logged in as attendee)
+    saved_session_ids = []
+    if session.get('uid') and session.get('role') == 'attendee':
+        # We will store saved sessions using the session_id as the document ID
+        saved_docs = db.collection('attendees').document(session.get('uid')).collection('saved_sessions').where('event_id', '==', event_id).stream()
+        saved_session_ids = [d.id for d in saved_docs]
+
+    # MAKE SURE to pass `agenda` and `saved_session_ids` to your render_template!
+    # Example: return render_template('public/event_details.html', event=event_data, agenda=agenda, saved_session_ids=saved_session_ids)
  
     return render_template('public/event_detail.html',
                            event=event,
                            venue=venue,
-                           ticket_types=ticket_types)
-
+                           ticket_types=ticket_types,
+                           agenda=agenda,
+                           saved_session_ids=saved_session_ids)

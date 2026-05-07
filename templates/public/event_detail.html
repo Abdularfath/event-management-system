@@ -35,13 +35,83 @@
         {% endif %}
       </div>
  
-      {# Description box — wireframe shows this in a bordered container #}
+            {# Description box — wireframe shows this in a bordered container #}
       <div class="ems-card card p-3 mb-4">
         <h6 class="fw-bold text-muted text-uppercase small mb-2">About this event</h6>
         <p class="mb-0" style="white-space:pre-line">{{ event.description }}</p>
       </div>
  
-    </div>
+      <!-- ⬇️ PASTE THE ENTIRE AGENDA SECTION RIGHT HERE ⬇️ -->
+      <div class="mt-5">
+          <h3 class="fw-bold mb-4"><i class="bi bi-calendar2-week text-primary me-2"></i>Event Agenda</h3>
+          
+          {% if agenda %}
+              <div class="row">
+                  {% for s in agenda %}
+                  <div class="col-12 mb-4">
+                      <div class="card shadow-sm border-0">
+                          <div class="card-body">
+                              <div class="d-flex justify-content-between align-items-start">
+                                  <div>
+                                      <h5 class="fw-bold mb-1">{{ s.title }}</h5>
+                                      <p class="text-muted small mb-3">
+                                          <i class="bi bi-clock me-1"></i> {{ s.date }} | {{ s.start_time }} - {{ s.end_time }}
+                                          {% if s.track %}<span class="badge bg-light text-dark border ms-2">{{ s.track }}</span>{% endif %}
+                                      </p>
+                                  </div>
+                                  
+                                  <!-- Save Session Button (Only for Attendees) -->
+                                  {% if session.get('role') == 'attendee' %}
+                                  <form action="{{ url_for('attendee.save_session', event_id=event.id, session_id=s.id) }}" method="POST">
+                                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                      {% if s.id in saved_session_ids %}
+                                          <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-bookmark-check-fill me-1"></i>Saved</button>
+                                      {% else %}
+                                          <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-bookmark me-1"></i>Save Session</button>
+                                      {% endif %}
+                                  </form>
+                                  {% endif %}
+                              </div>
+
+                              <p class="mb-3">{{ s.description }}</p>
+
+                              <!-- Display Assigned Speakers -->
+                              {% if s.speakers %}
+                                  <h6 class="fw-bold small text-uppercase text-muted mb-2">Speakers</h6>
+                                  <div class="d-flex flex-wrap gap-3">
+                                      {% for speaker in s.speakers %}
+                                      <div class="d-flex align-items-center">
+                                          {% if speaker.image_url %}
+                                              <img src="{{ speaker.image_url }}" class="rounded-circle me-2 border" style="width: 40px; height: 40px; object-fit: cover;">
+                                          {% else %}
+                                              <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2 text-white" style="width: 40px; height: 40px;">
+                                                  <i class="bi bi-person"></i>
+                                              </div>
+                                          {% endif %}
+                                          <div class="lh-sm">
+                                              <span class="fw-semibold d-block small">{{ speaker.name }}</span>
+                                              <span class="text-muted" style="font-size: 0.75rem;">{{ speaker.company }}</span>
+                                          </div>
+                                      </div>
+                                      {% endfor %}
+                                  </div>
+                              {% endif %}
+                              
+                          </div>
+                      </div>
+                  </div>
+                  {% endfor %}
+              </div>
+          {% else %}
+              <div class="alert alert-light border text-center py-4">
+                  <i class="bi bi-calendar-x fs-2 text-muted mb-2 d-block"></i>
+                  <p class="text-muted mb-0">The agenda for this event has not been published yet.</p>
+              </div>
+          {% endif %}
+      </div>
+      <!-- ⬆️ END OF AGENDA SECTION ⬆️ -->
+
+    </div> <!-- This is the closing div for the col-lg-7 LEFT COLUMN -->
  
     {# ── RIGHT COLUMN — ticket selection ────────────── #}
     <div class="col-lg-5">

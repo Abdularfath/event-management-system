@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, session, url_for, redirect
+
+
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from app.firebase_config import db
 from app.decorators import login_required, role_required
 from datetime import datetime, timezone
@@ -37,3 +39,22 @@ def my_events():
     registrations.sort(key=lambda x: x.get('created_at') or fallback_date, reverse=True)
 
     return render_template('attendee/my_events.html', registrations=registrations)
+@attendee_bp.route('/save_session/<event_id>/<session_id>', methods=['POST'])
+@login_required
+@role_required('attendee')
+def save_session(event_id, session_id):
+    """Toggles saving a session to the attendee's personal itinerary."""
+    uid = session.get('uid')
+    doc_ref = db.collection('attendees').document(uid).collection('saved_sessions').document(session_id)
+    
+    # Toggle logic: If it exists, delete it (unsave). If it doesn't, create it (save).
+    if doc_ref.get().exists:
+        doc_ref.delete()
+        flash('Session removed from your itinerary.', 'info')
+    else:
+        doc_ref.set({'event_id': event_id})
+        flash('Session saved to your itinerary!', 'success')
+        
+    # Redirect back to the public event details page
+    # IMPORTANT: Change 'public.event_details' if your route is named differently!
+    return redirect(url_for('public.event_detail', event_id=event_id))

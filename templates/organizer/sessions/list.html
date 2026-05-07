@@ -32,7 +32,14 @@
                     </p>
                     <p class="card-text">{{ session.description }}</p>
                 </div>
-                <div class="card-footer bg-white border-top-0 d-flex justify-content-end">
+                <!-- UPDATE THE CARD FOOTER IN list.html -->
+                 <div class="card-footer bg-white border-top-0 d-flex justify-content-between">
+                     <!-- ADD THIS SPEAKERS BUTTON -->
+                      <a href="{{ url_for('sessions.manage_session_speakers', event_id=event_id, session_id=session.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-people"></i> Speakers
+                    </a>
+                    
+                    <!-- EXISTING DELETE BUTTON -->
                     <form action="{{ url_for('sessions.delete_session', event_id=event_id, session_id=session.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this session?');">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Delete</button>

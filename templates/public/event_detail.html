@@ -11,7 +11,7 @@
  
   <div class="row g-4">
  
-    {# ── LEFT COLUMN — event info ────────────────────── #}
+    {# ── LEFT COLUMN — event info & agenda ────────────────────── #}
     <div class="col-lg-7">
  
       {# Cover image #}
@@ -35,13 +35,13 @@
         {% endif %}
       </div>
  
-            {# Description box — wireframe shows this in a bordered container #}
+      {# Description box #}
       <div class="ems-card card p-3 mb-4">
         <h6 class="fw-bold text-muted text-uppercase small mb-2">About this event</h6>
         <p class="mb-0" style="white-space:pre-line">{{ event.description }}</p>
       </div>
  
-      <!-- ⬇️ PASTE THE ENTIRE AGENDA SECTION RIGHT HERE ⬇️ -->
+      <!-- ── AGENDA SECTION ── -->
       <div class="mt-5">
           <h3 class="fw-bold mb-4"><i class="bi bi-calendar2-week text-primary me-2"></i>Event Agenda</h3>
           
@@ -60,17 +60,26 @@
                                       </p>
                                   </div>
                                   
-                                  <!-- Save Session Button (Only for Attendees) -->
-                                  {% if session.get('role') == 'attendee' %}
-                                  <form action="{{ url_for('attendee.save_session', event_id=event.id, session_id=s.id) }}" method="POST">
-                                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                      {% if s.id in saved_session_ids %}
-                                          <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-bookmark-check-fill me-1"></i>Saved</button>
-                                      {% else %}
-                                          <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-bookmark me-1"></i>Save Session</button>
+                                  <div class="d-flex align-items-center">
+                                      <!-- Save Session Button -->
+                                      {% if session.get('role') == 'attendee' %}
+                                      <form action="{{ url_for('attendee.save_session', event_id=event.id, session_id=s.id) }}" method="POST" class="me-2 mb-0">
+                                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                          {% if s.id in saved_session_ids %}
+                                              <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-bookmark-check-fill me-1"></i>Saved</button>
+                                          {% else %}
+                                              <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-bookmark me-1"></i>Save</button>
+                                          {% endif %}
+                                      </form>
                                       {% endif %}
-                                  </form>
-                                  {% endif %}
+                                  
+                                      <!-- Live Stream Button -->
+                                      {% if s.stream_url %}
+                                          <a href="{{ s.stream_url }}" target="_blank" class="btn btn-sm btn-danger">
+                                              <i class="bi bi-camera-video me-1"></i>Join Stream
+                                          </a>
+                                      {% endif %}
+                                  </div>
                               </div>
 
                               <p class="mb-3">{{ s.description }}</p>
@@ -111,7 +120,7 @@
       </div>
       <!-- ⬆️ END OF AGENDA SECTION ⬆️ -->
 
-    </div> <!-- This is the closing div for the col-lg-7 LEFT COLUMN -->
+    </div> <!-- ✅ THIS CLOSES THE LEFT COLUMN CORRECTLY ✅ -->
  
     {# ── RIGHT COLUMN — ticket selection ────────────── #}
     <div class="col-lg-5">
@@ -125,7 +134,7 @@
         <p class="text-muted">No tickets available yet.</p>
         {% else %}
  
-        {# Ticket type cards — wireframe page 2 #}
+        {# Ticket type cards #}
         {% for tt in ticket_types %}
         <div class="ems-ticket-card mb-3 p-3 border rounded-3 {{ 'opacity-50' if tt.sold_out }}">
           <div class="d-flex justify-content-between align-items-start">
@@ -150,7 +159,7 @@
             </div>
           </div>
  
-                    {# Select button — only shown if not sold out and user is logged in #}
+          {# Select button #}
           {% if not tt.sold_out %}
             {% if session.get('uid') %}
             <a href="{{ url_for('registration.register', event_id=event.id, ticket_type_id=tt.id) }}"
@@ -167,7 +176,7 @@
         </div>
         {% endfor %}
  
-        {# Promo code input — wireframe page 2 #}
+        {# Promo code input #}
         <hr class="my-3">
         <label class="form-label small fw-semibold">Have a promo code?</label>
         <div class="input-group input-group-sm">
@@ -180,13 +189,12 @@
  
         {% endif %}
       </div>
-    </div>
-  </div>
-</div>
+    </div> <!-- ✅ THIS CLOSES THE RIGHT COLUMN ✅ -->
+  </div> <!-- ✅ THIS CLOSES THE ROW ✅ -->
+</div> <!-- ✅ THIS CLOSES THE CONTAINER ✅ -->
  
 {% block extra_js %}
 <script>
-  //# Promo code UI — validation wired to backend on Day 9 #
   function applyPromo() {
     const code = document.getElementById('promoInput').value.trim();
     const msg  = document.getElementById('promoMsg');

@@ -42,12 +42,21 @@
                             <li><i class="bi bi-receipt text-muted me-2"></i> <strong>Order ID:</strong> <span class="text-muted" style="font-size: 0.85rem;">{{ reg.id }}</span></li>
                         </ul>
 
-                        {% if reg.status in ['confirmed', 'checked_in'] and reg.qr_url %}
-                            <div class="text-center mt-auto pt-3 border-top">
-                                <p class="text-muted small mb-2">Show this QR code at the venue</p>
-                                <a href="{{ reg.qr_url }}" target="_blank" class="btn btn-dark w-100">
-                                    <i class="bi bi-qr-code me-2"></i> View QR Code
-                                </a>
+                                                 {% if reg.status in ['confirmed', 'checked_in'] %}
+                            <div class="mt-auto pt-3 border-top">
+                                <div class="d-flex gap-2">
+                                    <!-- Agenda Button ALWAYS shows for confirmed tickets -->
+                                    <a href="{{ url_for('public.event_detail', event_id=reg.event_id) }}" class="btn btn-outline-primary {% if not (reg.get('qr_url') or reg.get('qr_code_url')) %}w-100{% else %}w-50{% endif %}">
+                                        <i class="bi bi-calendar2-week"></i> Agenda
+                                    </a>
+                                    
+                                    <!-- QR Code Button ONLY shows if a QR code exists -->
+                                    {% if reg.get('qr_url') or reg.get('qr_code_url') %}
+                                    <a href="{{ reg.get('qr_url') or reg.get('qr_code_url') }}" target="_blank" class="btn btn-dark w-50">
+                                        <i class="bi bi-qr-code"></i> QR Code
+                                    </a>
+                                    {% endif %}
+                                </div>
                             </div>
                         {% elif reg.status == 'pending' %}
                             <div class="text-center mt-auto pt-3 border-top">

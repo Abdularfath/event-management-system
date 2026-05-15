@@ -76,6 +76,10 @@
        <a href="{{ url_for('promos.list_promos', event_id=event.id) }}" class="btn btn-sm btn-outline-primary">
         <i class="bi bi-tag"></i> Promos
       </a>
+      <!-- Add this button inside the card actions in list.html -->
+       <a href="{{ url_for('events.view_waitlist', event_id=event.id) }}" class="btn btn-sm btn-outline-warning">
+        <i class="bi bi-person-lines-fill"></i> Waitlist
+      </a>
         {% endif %}
 
         {% if event.status == 'draft' %}

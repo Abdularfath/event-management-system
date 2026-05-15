@@ -246,3 +246,31 @@ def export_attendees(event_id):
         mimetype="text/csv",
         headers={"Content-Disposition": f"attachment;filename=attendees_{event_id}.csv"}
     )
+
+@events_bp.route('/<event_id>/waitlist')
+@login_required
+@role_required('organizer')
+def view_waitlist(event_id):
+    """View the waitlist for a specific event."""
+    # 1. Verify ownership
+    event_doc = db.collection('events').document(event_id).get()
+    if not event_doc.exists or event_doc.to_dict().get('organizer_uid') != session.get('uid'):
+        flash('Event not found or access denied.', 'danger')
+        return redirect(url_for('events.list_events'))
+
+    event_data = {**event_doc.to_dict(), 'id': event_doc.id}
+
+    # 2. Fetch ticket types to map IDs to readable names
+    tt_docs = db.collection('events').document(event_id).collection('ticket_types').stream()
+    ticket_map = {tt.id: tt.to_dict().get('name', 'Unknown') for tt in tt_docs}
+
+    # 3. Fetch the waitlist ordered by who joined first
+    waitlist_docs = db.collection('events').document(event_id).collection('waitlist').order_by('joined_at').stream()
+    waitlist = []
+    for doc in waitlist_docs:
+        w_data = doc.to_dict()
+        w_data['id'] = doc.id
+        w_data['ticket_name'] = ticket_map.get(w_data.get('ticket_type_id'), 'Unknown Ticket')
+        waitlist.append(w_data)
+
+    return render_template('organizer/events/waitlist.html', event=event_data, waitlist=waitlist)

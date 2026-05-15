@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Waitlist - {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('events.list_events') }}">My Events</a></li>
+            <li class="breadcrumb-item active">Waitlist</li>
+        </ol>
+    </nav>
+
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h2 class="fw-bold"><i class="bi bi-person-lines-fill text-warning me-2"></i>Waitlist</h2>
+            <p class="text-muted">Attendees waiting for tickets to <strong>{{ event.name }}</strong></p>
+        </div>
+        <div class="col-auto">
+            <span class="badge bg-dark fs-6">{{ waitlist|length }} Total Waiting</span>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">#</th>
+                            <th>Email</th>
+                            <th>Requested Ticket</th>
+                            <th>Status</th>
+                            <th>Date Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in waitlist %}
+                        <tr>
+                            <td class="ps-4 fw-bold text-muted">{{ loop.index }}</td>
+                            <td class="fw-semibold">{{ entry.attendee_email }}</td>
+                            <td><span class="badge bg-info text-dark">{{ entry.ticket_name }}</span></td>
+                            <td>
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-hourglass-split me-1"></i> Waiting
+                                </span>
+                            </td>
+                            <td class="text-muted small">
+                                {% if entry.joined_at %}
+                                    {{ entry.joined_at.strftime('%b %d, %Y %I:%M %p') }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                                No one is on the waitlist right now.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

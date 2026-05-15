@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}Manage Promo Codes{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 900px;">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('events.list_events') }}">My Events</a></li>
+            <li class="breadcrumb-item active">Promo Codes</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Add New Promo Form -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">Create Promo Code</h5>
+                    <form action="{{ url_for('promos.add_promo', event_id=event_id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Code Name</label>
+                            <input type="text" name="code" class="form-control text-uppercase" placeholder="e.g. EARLYBIRD20" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Discount Percentage (%)</label>
+                            <input type="number" name="discount_percentage" class="form-control" min="1" max="100" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Maximum Uses</label>
+                            <input type="number" name="max_uses" class="form-control" placeholder="Leave 0 for unlimited" value="0">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">Add Code</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- List of Promo Codes -->
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">Active Promo Codes</h5>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Discount</th>
+                                    <th>Uses</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for promo in promos %}
+                                <tr>
+                                    <td><span class="badge bg-dark fs-6">{{ promo.code }}</span></td>
+                                    <td><span class="text-success fw-bold">{{ promo.discount_percentage }}% OFF</span></td>
+                                    <td>{{ promo.current_uses }} / {% if promo.max_uses == 0 %}∞{% else %}{{ promo.max_uses }}{% endif %}</td>
+                                    <td>
+                                        {% if promo.active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <form action="{{ url_for('promos.toggle_promo', event_id=event_id, code_id=promo.id) }}" method="POST">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <button type="submit" class="btn btn-sm {% if promo.active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+                                                {% if promo.active %}Deactivate{% else %}Reactivate{% endif %}
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">No promo codes created yet.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

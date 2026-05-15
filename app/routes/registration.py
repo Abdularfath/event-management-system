@@ -36,44 +36,30 @@ def get_event_and_ticket(event_id, ticket_type_id):
 # ── Helper: apply promo code discount ────────────────────────────────
 def apply_promo(event_id, code, subtotal):
     """Returns (discount_amount, promo_doc_id, error_msg)."""
-    from datetime import timezone
-    now = datetime.now(timezone.utc)
+    # 1. We look inside the specific event's 'promo_codes' collection
+    doc_ref = db.collection('events').document(event_id).collection('promo_codes').document(code.upper())
+    doc = doc_ref.get()
 
-    docs = (
-        db.collection('promo_codes')
-        .where('event_id','==',event_id)
-        .where('code','==',code.upper())
-        .where('is_active','==',True)
-        .limit(1).stream()
-    )
-    results = list(docs)
-    if not results:
+    if not doc.exists:
         return 0, None, 'Invalid promo code.'
 
-    promo_doc = results[0]
-    promo = promo_doc.to_dict()
+    promo = doc.to_dict()
 
-    # Check validity dates
-    if promo.get('valid_from') and now < promo['valid_from']:
-        return 0, None, 'Promo code is not yet active.'
-    if promo.get('valid_until') and now > promo['valid_until']:
-        return 0, None, 'Promo code has expired.'
+    # 2. Check if active
+    if not promo.get('active', True):
+        return 0, None, 'This promo code is no longer active.'
 
-    # Check usage limit
-    used  = promo.get('used_count',0)
-    limit = promo.get('max_uses',0)
+    # 3. Check usage limit
+    used = promo.get('current_uses', 0)
+    limit = promo.get('max_uses', 0)
     if limit > 0 and used >= limit:
         return 0, None, 'Promo code usage limit reached.'
 
-    # Calculate discount
-    dtype = promo.get('discount_type','fixed')
-    dval  = promo.get('discount_value',0)
-    if dtype == 'percentage':
-        discount = round(subtotal * dval / 100, 2)
-    else:
-        discount = min(dval, subtotal)  # cannot discount more than subtotal
+    # 4. Calculate discount (we set it to percentage yesterday)
+    dval = promo.get('discount_percentage', 0)
+    discount = round(subtotal * dval / 100, 2)
 
-    return discount, promo_doc.id, None
+    return discount, doc.id, None
 
 
 # ── REGISTRATION FORM — GET shows form, POST creates pending reg ──────
@@ -90,7 +76,16 @@ def register(event_id, ticket_type_id):
 
     if request.method == 'POST':
         quantity = int(request.form.get('quantity','1'))
-        promo_code  = request.form.get('promo_code','').strip()
+        
+        # 1. Try to get the promo from the form
+        promo_code = request.form.get('promo_code','').strip()
+
+        # 2. ✅ SMARTER FALLBACK: If the form missed it, check the user's session memory!
+        if not promo_code and 'applied_promo' in session:
+            if session['applied_promo'].get('event_id') == event_id:
+                promo_code = session['applied_promo'].get('code')
+
+        print(f"[DEBUG PROMO] Code being applied: '{promo_code}'") # Helpful for your logs!
 
         # Server-side quantity validation
         max_order = ticket.get('max_per_order',10)
@@ -105,11 +100,15 @@ def register(event_id, ticket_type_id):
         # Apply promo code if provided
         if promo_code:
             discount, promo_id, err = apply_promo(event_id, promo_code, subtotal)
+            print(f"[DEBUG PROMO] Result -> Discount: {discount}, Error: {err}") # Helpful for your logs!
             if err:
                 flash(err, 'warning')
                 discount = 0
                 promo_id = None
                 promo_code = ''
+            else:
+                # ✅ Clear the memory so it doesn't get stuck for their next purchase
+                session.pop('applied_promo', None) 
 
         total_amount = max(0, subtotal - discount)
 
@@ -119,7 +118,7 @@ def register(event_id, ticket_type_id):
 
         _,reg_ref = db.collection('registrations').add({
             'event_id':         event_id,
-            'attendee_uid':      session['uid'],  # ✅ Consistent
+            'attendee_uid':      session['uid'],
             'attendee_name':     user_data.get('full_name', session.get('email','').split('@')[0]),
             'attendee_email':    session['email'],
             'ticket_type_id':    ticket_type_id,
@@ -136,7 +135,7 @@ def register(event_id, ticket_type_id):
             'created_at':        SERVER_TIMESTAMP,
         })
 
-        # If ticket is free — skip payment, confirm immediately
+        # If ticket is free (or made 100% free by a promo code) — skip payment, confirm immediately
         if total_amount == 0:
             reg_ref.update({
                 'status':         'confirmed',
@@ -149,6 +148,13 @@ def register(event_id, ticket_type_id):
             db.collection('events').document(event_id).collection('ticket_types').document(ticket_type_id).update({
                 'quantity_sold': Increment(quantity)
             })
+            
+            # ✅ NEW: Increment the promo code counter if one was used!
+            if promo_id:
+                db.collection('events').document(event_id).collection('promo_codes').document(promo_id).update({
+                    'current_uses': Increment(1)
+                })
+
             flash('Registration confirmed! This is a free ticket.','success')
             return redirect(url_for('attendee.my_events'))
 

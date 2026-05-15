@@ -195,12 +195,36 @@
  
 {% block extra_js %}
 <script>
-  function applyPromo() {
-    const code = document.getElementById('promoInput').value.trim();
+  async function applyPromo() {
+    const code = document.getElementById('promoInput').value.trim().toUpperCase();
     const msg  = document.getElementById('promoMsg');
-    if (!code) { msg.textContent = 'Please enter a promo code.'; return; }
-    msg.textContent = 'Promo code validation coming on Day 9.';
-    msg.className = 'form-text text-info mt-1';
+    const eventId = '{{ event.id }}';
+
+    if (!code) { 
+        msg.textContent = 'Please enter a promo code.'; 
+        msg.className = 'form-text text-danger mt-1'; 
+        return; 
+    }
+
+    msg.textContent = 'Validating...';
+    msg.className = 'form-text text-muted mt-1';
+
+    try {
+        // Call the new API we just built!
+        const response = await fetch(`/api/events/${eventId}/validate_promo/${code}`);
+        const data = await response.json();
+
+        if (data.valid) {
+            msg.textContent = data.message;
+            msg.className = 'form-text text-success fw-bold mt-1';
+        } else {
+            msg.textContent = data.message;
+            msg.className = 'form-text text-danger mt-1';
+        }
+    } catch (err) {
+        msg.textContent = 'Error communicating with server.';
+        msg.className = 'form-text text-danger mt-1';
+    }
   }
 </script>
 {% endblock %}

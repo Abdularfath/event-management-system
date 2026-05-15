@@ -1,4 +1,4 @@
-from flask import (Blueprint, render_template, request,
+from flask import (Blueprint, render_template, request, redirect, jsonify,
                         abort, flash, redirect, url_for, session)
 from app.firebase_config import db
  
@@ -119,3 +119,34 @@ def event_detail(event_id):
                            ticket_types=ticket_types,
                            agenda=agenda,
                            saved_session_ids=saved_session_ids)
+@public_bp.route('/api/events/<event_id>/validate_promo/<code>', methods=['GET'])
+def validate_promo(event_id, code):
+    """API Endpoint to validate a promo code via AJAX."""
+    code = code.upper().strip()
+    doc_ref = db.collection('events').document(event_id).collection('promo_codes').document(code)
+    doc = doc_ref.get()
+
+    if not doc.exists:
+        return jsonify({"valid": False, "message": "Invalid promo code."})
+
+    promo = doc.to_dict()
+    if not promo.get('active', True):
+        return jsonify({"valid": False, "message": "This promo code is no longer active."})
+
+    max_uses = promo.get('max_uses', 0)
+    current_uses = promo.get('current_uses', 0)
+
+    if max_uses > 0 and current_uses >= max_uses:
+        return jsonify({"valid": False, "message": "This promo code has reached its usage limit."})
+
+    # Save the valid promo in the Flask session so the checkout page can automatically apply it later!
+    session['applied_promo'] = {
+        'code': code,
+        'discount_percentage': promo.get('discount_percentage'),
+        'event_id': event_id
+    }
+
+    return jsonify({
+        "valid": True,
+        "message": f"Success! {promo.get('discount_percentage')}% discount will be applied at checkout."
+    })

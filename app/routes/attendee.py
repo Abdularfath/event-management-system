@@ -58,3 +58,34 @@ def save_session(event_id, session_id):
     # Redirect back to the public event details page
     # IMPORTANT: Change 'public.event_details' if your route is named differently!
     return redirect(url_for('public.event_detail', event_id=event_id))
+
+from google.cloud.firestore import SERVER_TIMESTAMP
+
+@attendee_bp.route('/<event_id>/<ticket_type_id>/waitlist', methods=['POST'])
+@login_required
+@role_required('attendee')
+def join_waitlist(event_id, ticket_type_id):
+    uid = session.get('uid')
+    email = session.get('email')
+
+    # Check if they are already on the waitlist
+    existing = db.collection('events').document(event_id).collection('waitlist') \
+                 .where('attendee_uid', '==', uid) \
+                 .where('ticket_type_id', '==', ticket_type_id) \
+                 .limit(1).stream()
+    
+    if len(list(existing)) > 0:
+        flash('You are already on the waitlist for this ticket!', 'info')
+        return redirect(url_for('public.event_detail', event_id=event_id))
+
+    # Add to waitlist
+    db.collection('events').document(event_id).collection('waitlist').add({
+        'attendee_uid': uid,
+        'attendee_email': email,
+        'ticket_type_id': ticket_type_id,
+        'status': 'waiting',
+        'joined_at': SERVER_TIMESTAMP
+    })
+
+    flash('You have been added to the waitlist! We will email you if a spot opens up.', 'success')
+    return redirect(url_for('public.event_detail', event_id=event_id))

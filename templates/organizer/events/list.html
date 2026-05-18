@@ -80,6 +80,9 @@
        <a href="{{ url_for('events.view_waitlist', event_id=event.id) }}" class="btn btn-sm btn-outline-warning">
         <i class="bi bi-person-lines-fill"></i> Waitlist
       </a>
+      <a href="{{ url_for('events.event_analytics', event_id=event.id) }}" class="btn btn-sm btn-outline-info mt-1">
+        <i class="bi bi-graph-up"></i> Analytics
+      </a>
         {% endif %}
 
         {% if event.status == 'draft' %}

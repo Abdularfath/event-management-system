@@ -8,6 +8,7 @@ from google.cloud.firestore import SERVER_TIMESTAMP
 import csv
 from io import StringIO
 from flask import Response
+from google.cloud.firestore import Increment
  
 events_bp = Blueprint('events', __name__, url_prefix='/organizer/events')
  
@@ -196,7 +197,8 @@ def event_attendees(event_id):
     # Sort attendees by name in Python (avoids needing a complex Firestore index)
     attendees.sort(key=lambda x: x.get('attendee_name', '').lower())
 
-    return render_template('organizer/events/attendees.html', event=data, event_id=event_id, attendees=attendees)
+    # FIXED: Added 'return' and changed 'event=event' to 'event=data'
+    return render_template('organizer/events/attendees.html', event=data, attendees=attendees, event_id=event_id)
 
 # ── EXPORT CSV ──────────────────────────────────────────────────────────
 @events_bp.route('/<event_id>/export')
@@ -289,3 +291,68 @@ def event_scanner(event_id):
     event_data = {**event_doc.to_dict(), 'id': event_doc.id}
     
     return render_template('organizer/events/scanner.html', event=event_data)
+
+@events_bp.route('/<event_id>/attendees/<reg_id>/toggle-checkin', methods=['POST'])
+@login_required
+@role_required('organizer')
+def toggle_checkin(event_id, reg_id):
+    """Manually toggle an attendee's check-in status."""
+    reg_ref = db.collection('registrations').document(reg_id)
+    reg_doc = reg_ref.get()
+    
+    if not reg_doc.exists or reg_doc.to_dict().get('event_id') != event_id:
+        flash('Registration not found.', 'danger')
+        return redirect(url_for('events.event_attendees', event_id=event_id))
+
+    current_status = reg_doc.to_dict().get('status')
+    
+    # Determine new status and math
+    if current_status == 'checked_in':
+        new_status = 'confirmed'
+        increment_val = -1
+    else:
+        new_status = 'checked_in'
+        increment_val = 1
+
+    # 1. Update the registration document
+    reg_ref.update({'status': new_status})
+
+    # 2. Update the event's total_checkins counter
+    db.collection('events').document(event_id).update({
+        'total_checkins': Increment(increment_val)
+    })
+
+    flash(f"Attendee successfully {'checked in' if new_status == 'checked_in' else 'un-checked in'}.", "success")
+    return redirect(url_for('events.event_attendees', event_id=event_id))
+
+@events_bp.route('/<event_id>/analytics')
+@login_required
+@role_required('organizer')
+def event_analytics(event_id):
+    """View visual analytics (charts) for an event."""
+    event_doc = db.collection('events').document(event_id).get()
+    if not event_doc.exists or event_doc.to_dict().get('organizer_uid') != session.get('uid'):
+        flash('Event not found.', 'danger')
+        return redirect(url_for('events.list_events'))
+
+    # Fetch all confirmed or checked-in registrations
+    regs = db.collection('registrations')\
+             .where('event_id', '==', event_id)\
+             .where('status', 'in', ['confirmed', 'checked_in']).stream()
+    
+    # Group ticket sales by ticket type name
+    ticket_sales = {}
+    for r in regs:
+        data = r.to_dict()
+        t_name = data.get('ticket_type_name', 'Unknown')
+        qty = data.get('quantity', 1)
+        ticket_sales[t_name] = ticket_sales.get(t_name, 0) + qty
+
+    # Prepare data for Chart.js
+    chart_labels = list(ticket_sales.keys())
+    chart_data = list(ticket_sales.values())
+
+    return render_template('organizer/events/analytics.html', 
+                           event={**event_doc.to_dict(), 'id': event_id},
+                           chart_labels=chart_labels, 
+                           chart_data=chart_data)

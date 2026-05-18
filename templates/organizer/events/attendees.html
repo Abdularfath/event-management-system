@@ -56,11 +56,19 @@
                                     N/A
                                 {% endif %}
                             </td>
-                            <td>
+                                                        <td>
                                 {% if reg.status == 'checked_in' %}
-                                    <span class="badge bg-success"><i class="bi bi-check-all me-1"></i>Checked In</span>
+                                    <span class="badge bg-success mb-2 d-block"><i class="bi bi-check2-circle"></i> Checked In</span>
+                                    <form action="{{ url_for('events.toggle_checkin', event_id=event_id, reg_id=reg.id) }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">Undo</button>
+                                    </form>
                                 {% elif reg.status == 'confirmed' %}
-                                    <span class="badge bg-primary">Confirmed</span>
+                                    <span class="badge bg-primary mb-2 d-block">Confirmed</span>
+                                    <form action="{{ url_for('events.toggle_checkin', event_id=event_id, reg_id=reg.id) }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-success w-100"><i class="bi bi-upc-scan"></i> Manual Check-in</button>
+                                    </form>
                                 {% elif reg.status == 'pending' %}
                                     <span class="badge bg-warning text-dark">Pending</span>
                                 {% else %}

@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Analytics - {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('events.list_events') }}">My Events</a></li>
+                    <li class="breadcrumb-item active">Analytics</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold mb-0"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Analytics</h3>
+        </div>
+        <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-secondary">Back</a>
+    </div>
+
+    <div class="row">
+        <!-- Chart Column -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white border-0 pt-4 pb-0">
+                    <h5 class="fw-bold">Tickets Sold by Type</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Chart.js Canvas -->
+                    <canvas id="ticketChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Summary Stats Column -->
+        <div class="col-lg-4 mb-4">
+            <div class="card bg-primary text-white shadow-sm border-0 mb-3">
+                <div class="card-body py-4">
+                    <h6 class="card-title text-white-50 fw-semibold mb-1">Total Revenue</h6>
+                    <h2 class="fw-bold mb-0">₹{{ event.total_revenue | default(0) }}</h2>
+                </div>
+            </div>
+            <div class="card bg-success text-white shadow-sm border-0">
+                <div class="card-body py-4">
+                    <h6 class="card-title text-white-50 fw-semibold mb-1">Total Check-ins</h6>
+                    <h2 class="fw-bold mb-0">{{ event.total_checkins | default(0) }} / {{ event.total_registrations | default(0) }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Import Chart.js safely from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Get data passed from Python backend
+    const labels = {{ chart_labels | tojson | safe }};
+    const dataValues = {{ chart_data | tojson | safe }};
+
+    const ctx = document.getElementById('ticketChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'bar', // A beautiful bar chart
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Tickets Sold',
+                data: dataValues,
+                backgroundColor: 'rgba(13, 110, 253, 0.6)', // Bootstrap primary color
+                borderColor: 'rgba(13, 110, 253, 1)',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 } // No decimals for ticket counts
+                }
+            },
+            plugins: {
+                legend: { display: false } // Hide legend for single dataset
+            }
+        }
+    });
+</script>
+{% endblock %}

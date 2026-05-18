@@ -59,11 +59,11 @@
                                 </div>
                             </div>
                         {% elif reg.status == 'pending' %}
-                            <div class="text-center mt-auto pt-3 border-top">
-                                <a href="{{ url_for('registration.payment_summary', reg_id=reg.id) }}" class="btn btn-warning w-100">
-                                    Complete Payment
-                                </a>
-                            </div>
+                        <div class="text-center mt-auto pt-3 border-top">
+                            <a href="{{ url_for('registration.payment_summary', registration_id=reg.id) }}" class="btn btn-warning w-100">
+                                Complete Payment
+                            </a>
+                        </div>
                         {% endif %}
                     </div>
                 </div>

@@ -274,3 +274,18 @@ def view_waitlist(event_id):
         waitlist.append(w_data)
 
     return render_template('organizer/events/waitlist.html', event=event_data, waitlist=waitlist)
+
+@events_bp.route('/<event_id>/scanner')
+@login_required
+@role_required('organizer')
+def event_scanner(event_id):
+    """Render the QR code scanner page for an event."""
+    event_doc = db.collection('events').document(event_id).get()
+    
+    if not event_doc.exists or event_doc.to_dict().get('organizer_uid') != session.get('uid'):
+        flash('Event not found or access denied.', 'danger')
+        return redirect(url_for('events.list_events'))
+        
+    event_data = {**event_doc.to_dict(), 'id': event_doc.id}
+    
+    return render_template('organizer/events/scanner.html', event=event_data)

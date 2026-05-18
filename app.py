@@ -34,6 +34,7 @@ from app.routes.payment import payment_bp
 from app.routes.sessions import sessions_bp 
 from app.routes.speakers import speakers_bp
 from app.routes.promos import promos_bp
+
  
 app.register_blueprint(test_bp)
 app.register_blueprint(auth_bp)

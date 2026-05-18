@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template, session, redirect, url_for, flash
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
 from app.firebase_config import init_firebase
@@ -52,6 +52,8 @@ app.register_blueprint(sessions_bp)
 app.register_blueprint(speakers_bp)
 app.register_blueprint(promos_bp)
 
+
+
 csrf.exempt(checkin_bp)
  # scanner JS sends token in header, not form
 csrf.exempt(registration_bp)  # validate-promo uses fetch() not form POST
@@ -62,5 +64,32 @@ csrf.exempt(registration_bp)  # validate-promo uses fetch() not form POST
 # def inject_paypal_client_id():
 #     return dict(paypal_client_id=os.getenv('PAYPAL_CLIENT_ID',''))
 
+
+# ... your blueprints like app.register_blueprint(admin_bp) ...
+
+# Paste them right here!
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('errors/404.html'), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('errors/500.html'), 500
+
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template('errors/403.html'), 403
+
+# ...
+# Do NOT put them below this line:
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)
+
+
+    # ==========================================
+    # CUSTOM ERROR HANDLERS (Day 4 Polish)
+    # ==========================================
+    @app.errorhandler(403)
+    def forbidden(e):
+        """Custom 403 Forbidden page."""
+        return render_template('errors/403.html'), 403

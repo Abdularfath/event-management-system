@@ -56,9 +56,13 @@
                                     N/A
                                 {% endif %}
                             </td>
-                                                        <td>
+                                <td>
                                 {% if reg.status == 'checked_in' %}
                                     <span class="badge bg-success mb-2 d-block"><i class="bi bi-check2-circle"></i> Checked In</span>
+                                    <!-- NEW PDF BUTTON -->
+                                    <a href="{{ url_for('events.generate_certificate', event_id=request.view_args['event_id'], reg_id=reg.id) }}" class="btn btn-sm btn-primary w-100 mb-1">
+                                        <i class="bi bi-award"></i> Certificate
+                                    </a>
                                     <form action="{{ url_for('events.toggle_checkin', event_id=event_id, reg_id=reg.id) }}" method="POST">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-sm btn-outline-danger w-100">Undo</button>

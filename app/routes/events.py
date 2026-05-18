@@ -9,6 +9,11 @@ import csv
 from io import StringIO
 from flask import Response
 from google.cloud.firestore import Increment
+from io import BytesIO
+from flask import make_response
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib import colors
  
 events_bp = Blueprint('events', __name__, url_prefix='/organizer/events')
  
@@ -356,3 +361,89 @@ def event_analytics(event_id):
                            event={**event_doc.to_dict(), 'id': event_id},
                            chart_labels=chart_labels, 
                            chart_data=chart_data)
+
+@events_bp.route('/<event_id>/certificate/<reg_id>')
+@login_required
+def generate_certificate(event_id, reg_id):
+    """Generate a PDF Attendance Certificate for a checked-in user."""
+    # 1. Fetch Event and Registration data
+    event_doc = db.collection('events').document(event_id).get()
+    reg_doc = db.collection('registrations').document(reg_id).get()
+
+    if not event_doc.exists or not reg_doc.exists:
+        flash('Data not found.', 'danger')
+        return redirect(url_for('events.list_events'))
+
+    event_data = event_doc.to_dict()
+    reg_data = reg_doc.to_dict()
+
+    # 2. Security Check: Only allow if they actually checked in!
+    if reg_data.get('status') != 'checked_in':
+        flash('Certificates are only available for attendees who checked in.', 'warning')
+        return redirect(url_for('events.list_events'))
+
+    # 3. Security Check: Only the Attendee or the Organizer can download it
+    is_organizer = session.get('uid') == event_data.get('organizer_uid')
+    is_attendee = session.get('uid') == reg_data.get('user_uid')
+    if not is_organizer and not is_attendee:
+        flash('Unauthorized.', 'danger')
+        return redirect(url_for('events.list_events'))
+
+    # 4. Generate the PDF
+    buffer = BytesIO()
+    # Create a landscape (horizontal) PDF
+    p = canvas.Canvas(buffer, pagesize=landscape(letter))
+    width, height = landscape(letter)
+
+    # Draw a fancy border
+    p.setStrokeColor(colors.HexColor('#0d6efd')) # Bootstrap primary blue
+    p.setLineWidth(10)
+    p.rect(20, 20, width-40, height-40)
+
+    # Title
+    p.setFont("Helvetica-Bold", 40)
+    p.setFillColor(colors.HexColor('#333333'))
+    p.drawCentredString(width/2, height - 120, "CERTIFICATE OF ATTENDANCE")
+
+    # Subtitle
+    p.setFont("Helvetica", 20)
+    p.setFillColor(colors.gray)
+    p.drawCentredString(width/2, height - 180, "This is to certify that")
+
+    # Attendee Name
+    p.setFont("Helvetica-Bold", 35)
+    p.setFillColor(colors.black)
+    p.drawCentredString(width/2, height - 240, reg_data.get('attendee_name', 'Unknown Attendee').upper())
+
+    # Event info
+    p.setFont("Helvetica", 20)
+    p.setFillColor(colors.gray)
+    p.drawCentredString(width/2, height - 300, "has successfully attended the event")
+
+    # Event Name
+    p.setFont("Helvetica-Bold", 25)
+    p.setFillColor(colors.HexColor('#0d6efd'))
+    p.drawCentredString(width/2, height - 350, event_data.get('name', 'Unknown Event'))
+
+    # Date
+    p.setFont("Helvetica", 14)
+    p.setFillColor(colors.gray)
+    if reg_data.get('created_at'):
+        date_str = reg_data['created_at'].strftime('%B %d, %Y')
+    else:
+        date_str = "2026"
+    p.drawCentredString(width/2, 100, f"Date: {date_str}")
+
+    # Finish saving the PDF
+    p.showPage()
+    p.save()
+
+    # 5. Send PDF to browser
+    pdf_out = buffer.getvalue()
+    buffer.close()
+    
+    response = make_response(pdf_out)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=Certificate_{reg_data.get("attendee_name", "Attendee")}.pdf'
+    
+    return response

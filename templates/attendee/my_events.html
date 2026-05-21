@@ -42,7 +42,7 @@
                             <li><i class="bi bi-receipt text-muted me-2"></i> <strong>Order ID:</strong> <span class="text-muted" style="font-size: 0.85rem;">{{ reg.id }}</span></li>
                         </ul>
 
-                                                 {% if reg.status in ['confirmed', 'checked_in'] %}
+                            {% if reg.status in ['confirmed', 'checked_in'] %}
                             <div class="mt-auto pt-3 border-top">
                                 <div class="d-flex gap-2">
                                     <!-- Agenda Button ALWAYS shows for confirmed tickets -->
@@ -54,6 +54,9 @@
                                     {% if reg.get('qr_url') or reg.get('qr_code_url') %}
                                     <a href="{{ reg.get('qr_url') or reg.get('qr_code_url') }}" target="_blank" class="btn btn-dark w-50">
                                         <i class="bi bi-qr-code"></i> QR Code
+                                    </a>
+                                    <a href="{{ url_for('attendee.submit_feedback', event_id=reg.event_id, registration_id=reg.id) }}" class="btn btn-sm btn-outline-primary mt-2">
+                                        <i class="bi bi-star-fill text-warning me-1"></i> Leave Feedback
                                     </a>
                                     {% endif %}
                                 </div>

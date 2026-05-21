@@ -34,6 +34,12 @@
         <form method="POST" novalidate>
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="promo_code" id="hidden_promo" value="">
+
+          <div class="mb-3">
+            <label for="attendee_name" class="form-label">Full Name</label>
+            <!-- ADD the value attribute here: -->
+             <input type="text" class="form-control" id="attendee_name" name="attendee_name" value="{{ session.get('name', '') }}" required>
+            </div>
  
           {# Quantity selector #}
           <div class="mb-3">

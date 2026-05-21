@@ -119,7 +119,7 @@ def register(event_id, ticket_type_id):
         _,reg_ref = db.collection('registrations').add({
             'event_id':         event_id,
             'attendee_uid':      session['uid'],
-            'attendee_name':     user_data.get('full_name', session.get('email','').split('@')[0]),
+            'attendee_name':     request.form.get('attendee_name', session.get('name', 'Attendee')),
             'attendee_email':    session['email'],
             'ticket_type_id':    ticket_type_id,
             'ticket_type_name':  ticket['name'],

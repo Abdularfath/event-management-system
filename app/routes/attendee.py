@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from app.firebase_config import db
 from app.decorators import login_required, role_required
 from datetime import datetime, timezone
+from google.cloud.firestore import SERVER_TIMESTAMP
 
 # 1. Define the Blueprint (This was missing!)
 attendee_bp = Blueprint('attendee', __name__, url_prefix='/attendee')
@@ -89,3 +90,36 @@ def join_waitlist(event_id, ticket_type_id):
 
     flash('You have been added to the waitlist! We will email you if a spot opens up.', 'success')
     return redirect(url_for('public.event_detail', event_id=event_id))
+
+
+
+@attendee_bp.route('/feedback/<event_id>/<registration_id>', methods=['GET', 'POST'])
+@login_required
+@role_required('attendee')
+def submit_feedback(event_id, registration_id):
+    # Check if feedback already exists to prevent duplicates
+    feedback_ref = db.collection('events').document(event_id).collection('feedback').document(registration_id)
+    
+    if feedback_ref.get().exists:
+        flash('You have already submitted feedback for this event. Thank you!', 'info')
+        return redirect(url_for('attendee.my_events'))
+
+    if request.method == 'POST':
+        rating = int(request.form.get('rating', 5))
+        comments = request.form.get('comments', '').strip()
+        
+        feedback_ref.set({
+            'attendee_uid': session.get('uid'),
+            'attendee_name': session.get('name'),
+            'rating': rating,
+            'comments': comments,
+            'submitted_at': SERVER_TIMESTAMP
+        })
+        flash('Thank you for your feedback! Your review has been saved.', 'success')
+        return redirect(url_for('attendee.my_events'))
+        
+    # GET request - show the form
+    event_doc = db.collection('events').document(event_id).get()
+    event_data = {**event_doc.to_dict(), 'id': event_id} if event_doc.exists else {}
+    
+    return render_template('attendee/feedback.html', event=event_data, registration_id=registration_id)

@@ -14,6 +14,7 @@ from flask import make_response
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import landscape, letter
 from reportlab.lib import colors
+from google.cloud.firestore import Query
  
 events_bp = Blueprint('events', __name__, url_prefix='/organizer/events')
  
@@ -447,3 +448,24 @@ def generate_certificate(event_id, reg_id):
     response.headers['Content-Disposition'] = f'attachment; filename=Certificate_{reg_data.get("attendee_name", "Attendee")}.pdf'
     
     return response
+
+
+
+@events_bp.route('/<event_id>/feedback')
+@login_required
+@role_required('organizer')
+def view_feedback(event_id):
+    event_doc = db.collection('events').document(event_id).get()
+    if not event_doc.exists or event_doc.to_dict().get('organizer_uid') != session.get('uid'):
+        return redirect(url_for('events.list_events'))
+        
+    event_data = {**event_doc.to_dict(), 'id': event_id}
+    
+    # Fetch all feedback for this event
+    feedback_docs = db.collection('events').document(event_id).collection('feedback').order_by('submitted_at', direction=Query.DESCENDING).stream()
+    feedbacks = [{**d.to_dict(), 'id': d.id} for d in feedback_docs]
+    
+    # Calculate average rating
+    avg_rating = round(sum([f['rating'] for f in feedbacks]) / len(feedbacks), 1) if feedbacks else 0
+    
+    return render_template('organizer/events/feedback.html', event=event_data, feedbacks=feedbacks, avg_rating=avg_rating)

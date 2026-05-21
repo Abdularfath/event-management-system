@@ -19,6 +19,7 @@ def get_api_key():
 @auth_bp.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
+        name = request.form.get('name', '').strip()
         email    = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         role     = request.form.get('role', 'attendee')
@@ -42,6 +43,7 @@ def signup():
             # Save profile to Firestore /users/{uid}
             db.collection('users').document(user.uid).set({
                 'uid':              user.uid,
+                'name':             name,
                 'email':            email,
                 'role':             role,
                 'is_active':        True,
@@ -53,6 +55,7 @@ def signup():
             session['uid']   = user.uid
             session['email'] = email
             session['role']  = role
+            session['name']  = name
  
             flash(f'Welcome to EMS! Your account has been created.', 'success')
  
@@ -102,13 +105,16 @@ def login():
             uid = data['localId']
             user_doc = db.collection('users').document(uid).get()
             role = 'attendee'
+            name = 'User'
             if user_doc.exists:
                 role = user_doc.to_dict().get('role', 'attendee')
+                name = user_doc.to_dict().get('name', 'User')
  
             # Set session
             session['uid']   = uid
             session['email'] = email
             session['role']  = role
+            session['name']  = name 
  
             flash(f'Welcome back!', 'success')
  

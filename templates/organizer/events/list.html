@@ -83,6 +83,9 @@
       <a href="{{ url_for('events.event_analytics', event_id=event.id) }}" class="btn btn-sm btn-outline-info mt-1">
         <i class="bi bi-graph-up"></i> Analytics
       </a>
+      <a href="{{ url_for('events.view_feedback', event_id=event.id) }}" class="btn btn-sm btn-outline-warning text-dark">
+        <i class="bi bi-star-fill text-warning me-1"></i> Feedback
+      </a>
         {% endif %}
 
         {% if event.status == 'draft' %}

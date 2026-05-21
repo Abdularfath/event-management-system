@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Leave Feedback{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h3 class="fw-bold text-center mb-3">Event Feedback</h3>
+                    <p class="text-center text-muted">How was your experience at <strong>{{ event.name }}</strong>?</p>
+                    
+                    <form action="{{ url_for('attendee.submit_feedback', event_id=event.id, registration_id=registration_id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-4 text-center">
+                            <label class="form-label fw-bold">Rate the Event (1 to 5 Stars)</label>
+                            <input type="range" class="form-range" min="1" max="5" step="1" name="rating" id="rating" value="5" oninput="document.getElementById('ratingVal').innerText = this.value + ' Stars'">
+                            <h4 class="text-warning mt-2" id="ratingVal">5 Stars</h4>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="comments" class="form-label fw-bold">Additional Comments (Optional)</label>
+                            <textarea class="form-control" id="comments" name="comments" rows="4" placeholder="What did you love? What could be improved?"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2">Submit Feedback</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

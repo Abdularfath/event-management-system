@@ -1,20 +1,11 @@
-version: '3.9'
- 
 services:
   web:
     build: .
     container_name: ems-web
- 
     ports:
       - "5000:5000"
- 
     env_file:
       - .env
- 
     volumes:
-      # Mount entire project (live reload — changes appear instantly)
-      - .:/app
-      # Mount secrets folder explicitly so Flask can read firebase-key.json
       - ./secrets:/app/secrets:ro
- 
     restart: unless-stopped

@@ -22,4 +22,4 @@ COPY . .
 EXPOSE 5000
  
 # The command that runs when the container starts
-CMD ["python", "app.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "wsgi:application"]

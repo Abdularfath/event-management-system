@@ -36,6 +36,7 @@ from app.routes.speakers import speakers_bp
 from app.routes.promos import promos_bp
 from app.routes.sponsors import sponsors_bp
 from app.routes.deliverables import deliverables_bp
+from app.routes.sponsor_portal import sponsor_portal_bp
 
  
 app.register_blueprint(test_bp)
@@ -55,6 +56,7 @@ app.register_blueprint(speakers_bp)
 app.register_blueprint(promos_bp)
 app.register_blueprint(sponsors_bp)
 app.register_blueprint(deliverables_bp)
+app.register_blueprint(sponsor_portal_bp)
 
 
 

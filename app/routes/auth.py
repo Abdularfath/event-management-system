@@ -33,7 +33,7 @@ def signup():
             flash('Password must be at least 6 characters.', 'danger')
             return redirect(url_for('auth.signup'))
  
-        if role not in ['attendee', 'organizer']:
+        if role not in ['attendee', 'organizer', 'sponsor']:
             role = 'attendee'
  
         try:
@@ -122,6 +122,8 @@ def login():
                 return redirect(url_for('organizer.dashboard'))
             if role == 'admin':
                 return redirect(url_for('admin.dashboard'))
+            if role == 'sponsor':
+                return redirect(url_for('sponsor_portal.dashboard'))
             return redirect(url_for('attendee.my_events'))
  
         except Exception as e:

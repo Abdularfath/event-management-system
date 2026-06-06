@@ -89,6 +89,9 @@
       <a href="{{ url_for('sponsors.list_sponsors', event_id=event.id) }}"class="btn btn-sm btn-outline-warning">
         <i class="bi bi-building me-1"></i>Sponsors
       </a>
+      <a href="{{ url_for('events.sponsor_dashboard', event_id=event.id) }}"class="btn btn-sm btn-warning">
+        <i class="bi bi-bar-chart-fill me-1"></i>Sponsor Dashboard
+      </a>
         {% endif %}
 
         {% if event.status == 'draft' %}

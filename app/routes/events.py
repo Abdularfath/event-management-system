@@ -469,3 +469,54 @@ def view_feedback(event_id):
     avg_rating = round(sum([f['rating'] for f in feedbacks]) / len(feedbacks), 1) if feedbacks else 0
     
     return render_template('organizer/events/feedback.html', event=event_data, feedbacks=feedbacks, avg_rating=avg_rating)
+
+@events_bp.route('/<event_id>/sponsor_dashboard')
+@login_required
+@role_required('organizer')
+def sponsor_dashboard(event_id):
+    doc, event_data = get_event_or_403(event_id)
+    if doc is None:
+        return redirect(url_for('events.list_events'))
+
+    # Fetch all sponsors
+    sponsors_docs = db.collection('events').document(event_id)\
+                      .collection('sponsors').stream()
+    sponsors = []
+    total_amount = 0
+
+    for s in sponsors_docs:
+        sponsor = {**s.to_dict(), 'id': s.id}
+        total_amount += sponsor.get('amount', 0)
+
+        # Fetch deliverables for each sponsor
+        deliverables_docs = db.collection('events').document(event_id)\
+                              .collection('sponsors').document(s.id)\
+                              .collection('deliverables').stream()
+        deliverables = [d.to_dict() for d in deliverables_docs]
+
+        total_d     = len(deliverables)
+        completed_d = sum(1 for d in deliverables if d.get('status') == 'completed')
+        progress    = int((completed_d / total_d) * 100) if total_d > 0 else 0
+
+        sponsor['total_deliverables']     = total_d
+        sponsor['completed_deliverables'] = completed_d
+        sponsor['progress_pct']           = progress
+        sponsors.append(sponsor)
+
+    # Sort by amount descending
+    sponsors.sort(key=lambda x: x.get('amount', 0), reverse=True)
+
+    # Tier breakdown
+    tier_counts = {}
+    for s in sponsors:
+        tier = s.get('tier', 'Custom')
+        tier_counts[tier] = tier_counts.get(tier, 0) + 1
+
+    return render_template(
+        'organizer/sponsors/dashboard.html',
+        event=event_data,
+        event_id=event_id,
+        sponsors=sponsors,
+        total_amount=total_amount,
+        tier_counts=tier_counts
+    )

@@ -35,6 +35,7 @@ from app.routes.sessions import sessions_bp
 from app.routes.speakers import speakers_bp
 from app.routes.promos import promos_bp
 from app.routes.sponsors import sponsors_bp
+from app.routes.deliverables import deliverables_bp
 
  
 app.register_blueprint(test_bp)
@@ -53,6 +54,7 @@ app.register_blueprint(sessions_bp)
 app.register_blueprint(speakers_bp)
 app.register_blueprint(promos_bp)
 app.register_blueprint(sponsors_bp)
+app.register_blueprint(deliverables_bp)
 
 
 

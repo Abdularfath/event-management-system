@@ -110,17 +110,16 @@ def login():
                 role = user_doc.to_dict().get('role', 'attendee')
                 name = user_doc.to_dict().get('name', 'User')
             
-            selected_role = request.form.get('role', '').strip()
+            # Validate selected role matches actual role in Firestore
+            selected_role = request.form.get('role_hint', '').strip()
             if selected_role and selected_role != role:
-                flash(f'Incorrect role selected. Please select "{role.capitalize()}" to login.', 'danger')
-                return redirect(url_for('auth.login'))
- 
+                 flash(f'Incorrect role selected. Please select "{role.capitalize()}" to login.', 'danger')
+                 return redirect(url_for('auth.login'))
             # Set session
             session['uid']   = uid
             session['email'] = email
             session['role']  = role
-            session['name']  = name 
- 
+            session['name']  = name
             flash(f'Welcome back!', 'success')
  
             if role == 'organizer':

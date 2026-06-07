@@ -109,6 +109,11 @@ def login():
             if user_doc.exists:
                 role = user_doc.to_dict().get('role', 'attendee')
                 name = user_doc.to_dict().get('name', 'User')
+            
+            selected_role = request.form.get('role', '').strip()
+            if selected_role and selected_role != role:
+                flash(f'Incorrect role selected. Please select "{role.capitalize()}" to login.', 'danger')
+                return redirect(url_for('auth.login'))
  
             # Set session
             session['uid']   = uid

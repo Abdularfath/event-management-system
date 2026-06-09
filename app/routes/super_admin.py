@@ -235,3 +235,128 @@ def toggle_user(uid):
 
     flash(f'User status updated to {new_status}.', 'success')
     return redirect(url_for('super_admin.all_users'))
+
+# ── PLATFORM ANALYTICS ───────────────────────────────────────────────
+@super_admin_bp.route('/analytics')
+@login_required
+@role_required('super_admin')
+def analytics():
+    # Revenue per tenant
+    tenants_docs = db.collection('tenants').stream()
+    tenants = [{**t.to_dict(), 'id': t.id} for t in tenants_docs]
+
+    tenant_stats = []
+    platform_revenue = 0.0
+    platform_events  = 0
+    platform_regs    = 0
+
+    for tenant in tenants:
+        # Find organizers for this tenant
+        org_docs = db.collection('users')\
+                     .where('tenant_id', '==', tenant['id'])\
+                     .where('role', '==', 'organizer').stream()
+        org_uids = [o.id for o in org_docs]
+
+        # Find events for these organizers
+        t_events    = 0
+        t_revenue   = 0.0
+        t_regs      = 0
+        event_ids   = []
+
+        all_events = db.collection('events').stream()
+        for e in all_events:
+            e_data = e.to_dict()
+            if e_data.get('organizer_uid') in org_uids:
+                t_events += 1
+                event_ids.append(e.id)
+
+        # Count registrations and revenue
+        if event_ids:
+            all_regs = db.collection('registrations')\
+                         .where('status', 'in', ['confirmed', 'checked_in'])\
+                         .stream()
+            for r in all_regs:
+                r_data = r.to_dict()
+                if r_data.get('event_id') in event_ids:
+                    t_regs    += 1
+                    t_revenue += float(r_data.get('total_amount', 0))
+
+        platform_revenue += t_revenue
+        platform_events  += t_events
+        platform_regs    += t_regs
+
+        tenant_stats.append({
+            'name':     tenant['company_name'],
+            'status':   tenant.get('status', 'active'),
+            'events':   t_events,
+            'regs':     t_regs,
+            'revenue':  t_revenue,
+            'id':       tenant['id']
+        })
+
+    # Sort by revenue descending
+    tenant_stats.sort(key=lambda x: x['revenue'], reverse=True)
+
+    # Chart data
+    chart_labels  = [t['name'] for t in tenant_stats]
+    chart_revenue = [t['revenue'] for t in tenant_stats]
+    chart_events  = [t['events'] for t in tenant_stats]
+
+    return render_template(
+        'super_admin/analytics.html',
+        tenant_stats=tenant_stats,
+        platform_revenue=platform_revenue,
+        platform_events=platform_events,
+        platform_regs=platform_regs,
+        chart_labels=chart_labels,
+        chart_revenue=chart_revenue,
+        chart_events=chart_events
+    )
+
+
+# ── ALL ORGANIZERS ───────────────────────────────────────────────────
+@super_admin_bp.route('/organizers')
+@login_required
+@role_required('super_admin')
+def all_organizers():
+    # Fetch all organizers
+    org_docs = db.collection('users')\
+                 .where('role', '==', 'organizer').stream()
+    organizers = [{**o.to_dict(), 'id': o.id} for o in org_docs]
+
+    # Fetch all tenants for dropdown
+    tenant_docs = db.collection('tenants').stream()
+    tenants = [{**t.to_dict(), 'id': t.id} for t in tenant_docs]
+
+    # Map tenant names to organizers
+    tenant_map = {t['id']: t['company_name'] for t in tenants}
+    for org in organizers:
+        tid = org.get('tenant_id', '')
+        org['tenant_name'] = tenant_map.get(tid, 'Unassigned')
+
+    organizers.sort(key=lambda x: x.get('email', '').lower())
+
+    return render_template(
+        'super_admin/organizers.html',
+        organizers=organizers,
+        tenants=tenants
+    )
+
+
+# ── ASSIGN ORGANIZER TO TENANT ───────────────────────────────────────
+@super_admin_bp.route('/organizers/<uid>/assign_tenant', methods=['POST'])
+@login_required
+@role_required('super_admin')
+def assign_tenant(uid):
+    tenant_id = request.form.get('tenant_id', '').strip()
+
+    user_ref = db.collection('users').document(uid)
+    user_doc = user_ref.get()
+
+    if not user_doc.exists:
+        flash('User not found.', 'danger')
+        return redirect(url_for('super_admin.all_organizers'))
+
+    user_ref.update({'tenant_id': tenant_id})
+    flash('Organizer assigned to tenant successfully!', 'success')
+    return redirect(url_for('super_admin.all_organizers'))

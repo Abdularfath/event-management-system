@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+{% block title %}{{ event.name }}{% endblock %}
+ 
+{% block content %}
+<div class="container py-4">
+ 
+  {# Back link #}
+  <a href="{{ url_for('public.index') }}" class="text-decoration-none text-muted mb-3 d-inline-block">
+    <i class="bi bi-arrow-left me-1"></i>Back to Events
+  </a>
+ 
+  <div class="row g-4">
+ 
+    {# ── LEFT COLUMN — event info & agenda ────────────────────── #}
+    <div class="col-lg-7">
+ 
+      {# Cover image #}
+      {% if event.cover_image_url %}
+      <img src="{{ event.cover_image_url }}" class="img-fluid rounded-3 mb-4 w-100" style="max-height:320px;object-fit:cover" alt="{{ event.name }}">
+      {% endif %}
+ 
+      {# Event title and meta #}
+      <h2 class="fw-bold">{{ event.name }}</h2>
+      <div class="d-flex flex-wrap gap-3 text-muted mb-4">
+        <span><i class="bi bi-calendar3 me-1"></i>
+          {% if event.start_datetime %}
+            {{ event.start_datetime.strftime('%B %d, %Y  %I:%M %p') }}
+          {% endif %}
+        </span>
+        {% if venue %}
+        <span><i class="bi bi-geo-alt me-1"></i>{{ venue.name }}, {{ venue.city }}</span>
+        {% endif %}
+        {% if event.event_type %}
+        <span class="badge bg-info text-dark">{{ event.event_type | capitalize }}</span>
+        {% endif %}
+      </div>
+ 
+      {# Description box #}
+      <div class="ems-card card p-3 mb-4">
+        <h6 class="fw-bold text-muted text-uppercase small mb-2">About this event</h6>
+        <p class="mb-0" style="white-space:pre-line">{{ event.description }}</p>
+      </div>
+ 
+      <!-- ── AGENDA SECTION ── -->
+      <div class="mt-5">
+          <h3 class="fw-bold mb-4"><i class="bi bi-calendar2-week text-primary me-2"></i>Event Agenda</h3>
+          
+          {% if agenda %}
+              <div class="row">
+                  {% for s in agenda %}
+                  <div class="col-12 mb-4">
+                      <div class="card shadow-sm border-0">
+                          <div class="card-body">
+                              <div class="d-flex justify-content-between align-items-start">
+                                  <div>
+                                      <h5 class="fw-bold mb-1">{{ s.title }}</h5>
+                                      <p class="text-muted small mb-3">
+                                          <i class="bi bi-clock me-1"></i> {{ s.date }} | {{ s.start_time }} - {{ s.end_time }}
+                                          {% if s.track %}<span class="badge bg-light text-dark border ms-2">{{ s.track }}</span>{% endif %}
+                                      </p>
+                                  </div>
+                                  
+                                  <div class="d-flex align-items-center">
+                                      <!-- Save Session Button -->
+                                      {% if session.get('role') == 'attendee' %}
+                                      <form action="{{ url_for('attendee.save_session', event_id=event.id, session_id=s.id) }}" method="POST" class="me-2 mb-0">
+                                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                          {% if s.id in saved_session_ids %}
+                                              <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-bookmark-check-fill me-1"></i>Saved</button>
+                                          {% else %}
+                                              <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-bookmark me-1"></i>Save</button>
+                                          {% endif %}
+                                      </form>
+                                      {% endif %}
+                                  
+                                      <!-- Live Stream Button -->
+                                      {% if s.stream_url %}
+                                          <a href="{{ s.stream_url }}" target="_blank" class="btn btn-sm btn-danger">
+                                              <i class="bi bi-camera-video me-1"></i>Join Stream
+                                          </a>
+                                      {% endif %}
+                                  </div>
+                              </div>
+
+                              <p class="mb-3">{{ s.description }}</p>
+
+                              <!-- Display Assigned Speakers -->
+                              {% if s.speakers %}
+                                  <h6 class="fw-bold small text-uppercase text-muted mb-2">Speakers</h6>
+                                  <div class="d-flex flex-wrap gap-3">
+                                      {% for speaker in s.speakers %}
+                                      <div class="d-flex align-items-center">
+                                          {% if speaker.image_url %}
+                                              <img src="{{ speaker.image_url }}" class="rounded-circle me-2 border" style="width: 40px; height: 40px; object-fit: cover;">
+                                          {% else %}
+                                              <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2 text-white" style="width: 40px; height: 40px;">
+                                                  <i class="bi bi-person"></i>
+                                              </div>
+                                          {% endif %}
+                                          <div class="lh-sm">
+                                              <span class="fw-semibold d-block small">{{ speaker.name }}</span>
+                                              <span class="text-muted" style="font-size: 0.75rem;">{{ speaker.company }}</span>
+                                          </div>
+                                      </div>
+                                      {% endfor %}
+                                  </div>
+                              {% endif %}
+                              
+                          </div>
+                      </div>
+                  </div>
+                  {% endfor %}
+              </div>
+          {% else %}
+              <div class="alert alert-light border text-center py-4">
+                  <i class="bi bi-calendar-x fs-2 text-muted mb-2 d-block"></i>
+                  <p class="text-muted mb-0">The agenda for this event has not been published yet.</p>
+              </div>
+          {% endif %}
+      </div>
+      <!-- ⬆️ END OF AGENDA SECTION ⬆️ -->
+<!-- SPONSORS SECTION -->
+{% if sponsors %}
+<div class="mt-5">
+    <h4 class="fw-bold mb-3">
+        <i class="bi bi-building me-2 text-warning"></i>Our Sponsors
+    </h4>
+    <div class="row g-3">
+        {% for sponsor in sponsors %}
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    {% if sponsor.logo_url %}
+                    <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.company_name }}"
+                         class="rounded mb-3"
+                         style="width:80px;height:80px;object-fit:cover;">
+                    {% else %}
+                    <div class="bg-warning rounded mx-auto mb-3 d-flex
+                                align-items-center justify-content-center"
+                         style="width:80px;height:80px;">
+                        <i class="bi bi-building text-white fs-3"></i>
+                    </div>
+                    {% endif %}
+                    <h6 class="fw-bold">{{ sponsor.company_name }}</h6>
+                    <span class="badge
+                        {% if sponsor.tier == 'Gold' %}bg-warning text-dark
+                        {% elif sponsor.tier == 'Silver' %}bg-secondary
+                        {% elif sponsor.tier == 'Bronze' %}bg-danger
+                        {% else %}bg-primary{% endif %} mb-2">
+                        {{ sponsor.tier }} Sponsor
+                    </span>
+                    {% if session.get('role') == 'attendee' %}
+                    <form method="POST"
+                          action="{{ url_for('attendee.connect_sponsor',
+                                            event_id=event.id,
+                                            sponsor_id=sponsor.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit"
+                                class="btn btn-sm btn-outline-warning w-100 mt-2">
+                            <i class="bi bi-person-plus me-1"></i>Connect
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- EXHIBITORS SECTION -->
+{% if exhibitors %}
+<div class="mt-5">
+    <h4 class="fw-bold mb-3">
+        <i class="bi bi-shop me-2 text-warning"></i>Exhibitors & Booths
+    </h4>
+    <p class="text-muted mb-3">
+        Visit these exhibitor booths at the venue for demos, products, and networking.
+    </p>
+    <div class="row g-3">
+        {% for ex in exhibitors %}
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-start">
+
+                        <!-- Logo -->
+                        {% if ex.logo_url %}
+                        <img src="{{ ex.logo_url }}" alt="{{ ex.company_name }}"
+                             class="rounded me-3"
+                             style="width:60px;height:60px;object-fit:cover;flex-shrink:0;">
+                        {% else %}
+                        <div class="bg-warning rounded me-3 d-flex align-items-center
+                                    justify-content-center"
+                             style="width:60px;height:60px;flex-shrink:0;">
+                            <i class="bi bi-shop text-white fs-4"></i>
+                        </div>
+                        {% endif %}
+
+                        <!-- Details -->
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="fw-bold mb-1">{{ ex.company_name }}</h6>
+                                    <span class="badge
+                                        {% if ex.tier == 'Gold' %}bg-warning text-dark
+                                        {% elif ex.tier == 'Silver' %}bg-secondary
+                                        {% elif ex.tier == 'Bronze' %}bg-danger
+                                        {% else %}bg-primary{% endif %}">
+                                        {{ ex.tier }}
+                                    </span>
+                                    <span class="badge bg-warning text-dark ms-1">
+                                        <i class="bi bi-shop me-1"></i>Exhibitor
+                                    </span>
+                                </div>
+                                {% if ex.booth_number %}
+                                <span class="badge bg-dark fs-6">
+                                    Booth {{ ex.booth_number }}
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            {% if ex.booth_description %}
+                            <p class="text-muted small mt-2 mb-1">
+                                {{ ex.booth_description }}
+                            </p>
+                            {% endif %}
+
+                            {% if ex.team_members %}
+                            <p class="small mb-2">
+                                <i class="bi bi-people me-1 text-muted"></i>
+                                {{ ex.team_members }}
+                            </p>
+                            {% endif %}
+
+                            {% if session.get('role') == 'attendee' %}
+                            <form method="POST"
+                                  action="{{ url_for('attendee.connect_sponsor',
+                                                    event_id=event.id,
+                                                    sponsor_id=ex.id) }}">
+                                <input type="hidden" name="csrf_token"
+                                       value="{{ csrf_token() }}">
+                                <button type="submit"
+                                        class="btn btn-sm btn-warning mt-1">
+                                    <i class="bi bi-person-plus me-1"></i>
+                                    Connect at Booth
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+    </div> <!-- ✅ THIS CLOSES THE LEFT COLUMN CORRECTLY ✅ -->
+ 
+    {# ── RIGHT COLUMN — ticket selection ────────────── #}
+    <div class="col-lg-5">
+      <div class="ems-card card p-4 sticky-top" style="top:80px">
+        <h5 class="fw-bold mb-3">
+          <i class="bi bi-ticket-perforated me-2 text-primary"></i>Ticket Types
+        </h5>
+ 
+        {# No tickets available #}
+        {% if not ticket_types %}
+        <p class="text-muted">No tickets available yet.</p>
+        {% else %}
+ 
+        {# Ticket type cards #}
+        {% for tt in ticket_types %}
+        <div class="ems-ticket-card mb-3 p-3 border rounded-3 {{ 'opacity-50' if tt.sold_out }}">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="fw-bold mb-1">{{ tt.name }}</h6>
+              {% if tt.description %}
+              <p class="text-muted small mb-1">{{ tt.description }}</p>
+              {% endif %}
+              <p class="text-muted small mb-0">
+                {% if tt.sold_out %}
+                  <span class="text-danger fw-semibold">Sold Out</span>
+                {% else %}
+                  {{ tt.available }} tickets left
+                  &nbsp;|&nbsp; Max {{ tt.max_per_order }} per person
+                {% endif %}
+              </p>
+            </div>
+            <div class="text-end ms-3">
+              <div class="fs-5 fw-bold text-primary">
+                {% if tt.price == 0 %}Free{% else %}₹{{ tt.price }}{% endif %}
+              </div>
+            </div>
+          </div>
+ 
+                    {# Select or Waitlist button #}
+          {% if not tt.sold_out %}
+              <!-- Available Tickets -->
+              {% if session.get('uid') %}
+              <a href="{{ url_for('registration.register', event_id=event.id, ticket_type_id=tt.id) }}" class="btn btn-outline-primary btn-sm mt-2 w-100">
+                 <i class="bi bi-check-circle me-1"></i>Select & Register
+              </a>
+              {% else %}
+              <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary btn-sm mt-2 w-100">
+                Login to Register
+              </a>
+              {% endif %}
+          {% else %}
+              <!-- Sold Out Tickets -> Show Waitlist -->
+              {% if session.get('uid') %}
+              <form action="{{ url_for('attendee.join_waitlist', event_id=event.id, ticket_type_id=tt.id) }}" method="POST" class="mt-2">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn btn-outline-warning btn-sm w-100">
+                      <i class="bi bi-person-lines-fill me-1"></i>Join Waitlist
+                  </button>
+              </form>
+              {% else %}
+              <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary btn-sm mt-2 w-100">
+                Login to Join Waitlist
+              </a>
+              {% endif %}
+          {% endif %}
+        </div>
+        {% endfor %}
+ 
+        {# Promo code input #}
+        <hr class="my-3">
+        <label class="form-label small fw-semibold">Have a promo code?</label>
+        <div class="input-group input-group-sm">
+          <input type="text" id="promoInput" class="form-control text-uppercase"
+                 placeholder="Enter code">
+          <button class="btn btn-outline-secondary" type="button"
+                  onclick="applyPromo()">Apply</button>
+        </div>
+        <div id="promoMsg" class="form-text mt-1"></div>
+ 
+        {% endif %}
+      </div>
+    </div> <!-- ✅ THIS CLOSES THE RIGHT COLUMN ✅ -->
+  </div> <!-- ✅ THIS CLOSES THE ROW ✅ -->
+</div> <!-- ✅ THIS CLOSES THE CONTAINER ✅ -->
+ 
+{% block extra_js %}
+<script>
+  async function applyPromo() {
+    const code = document.getElementById('promoInput').value.trim().toUpperCase();
+    const msg  = document.getElementById('promoMsg');
+    const eventId = '{{ event.id }}';
+
+    if (!code) { 
+        msg.textContent = 'Please enter a promo code.'; 
+        msg.className = 'form-text text-danger mt-1'; 
+        return; 
+    }
+
+    msg.textContent = 'Validating...';
+    msg.className = 'form-text text-muted mt-1';
+
+    try {
+        // Call the new API we just built!
+        const response = await fetch(`/api/events/${eventId}/validate_promo/${code}`);
+        const data = await response.json();
+
+        if (data.valid) {
+            msg.textContent = data.message;
+            msg.className = 'form-text text-success fw-bold mt-1';
+        } else {
+            msg.textContent = data.message;
+            msg.className = 'form-text text-danger mt-1';
+        }
+    } catch (err) {
+        msg.textContent = 'Error communicating with server.';
+        msg.className = 'form-text text-danger mt-1';
+    }
+  }
+</script>
+{% endblock %}
+{% endblock %}

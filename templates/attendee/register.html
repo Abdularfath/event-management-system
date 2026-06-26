@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Register — {{ event.name }}{% endblock %}
+ 
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+ 
+      {# Back link #}
+      <a href="{{ url_for('public.event_detail', event_id=event.id) }}"
+         class="text-decoration-none text-muted mb-3 d-inline-block">
+        <i class="bi bi-arrow-left me-1"></i>Back to Event
+      </a>
+ 
+      {# Event + ticket summary — wireframe page 3 top section #}
+      <div class="ems-card card p-3 mb-3 bg-light">
+        <h5 class="fw-bold mb-1">{{ event.name }}</h5>
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="text-muted">
+            <i class="bi bi-ticket-perforated me-1"></i>{{ ticket.name }}
+          </span>
+          <span class="fw-bold fs-5 text-primary">
+            {% if ticket.price == 0 %}Free{% else %}₹{{ ticket.price }}{% endif %}
+          </span>
+        </div>
+        <small class="text-muted">{{ available }} tickets remaining</small>
+      </div>
+ 
+      <div class="ems-card card p-4">
+        <h5 class="fw-bold mb-4">
+          <i class="bi bi-person-plus me-2 text-primary"></i>Registration Details
+        </h5>
+ 
+        <form method="POST" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="promo_code" id="hidden_promo" value="">
+
+          <div class="mb-3">
+            <label for="attendee_name" class="form-label">Full Name</label>
+            <!-- ADD the value attribute here: -->
+             <input type="text" class="form-control" id="attendee_name" name="attendee_name" value="{{ session.get('name', '') }}" required>
+            </div>
+ 
+          {# Quantity selector #}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Number of Tickets</label>
+            <select name="quantity" id="qty_select" class="form-select" onchange="updateTotal()">
+              {% for i in range(1, [ticket.max_per_order+1, available+1]|min) %}
+              <option value="{{ i }}">{{ i }}</option>
+              {% endfor %}
+            </select>
+          </div>
+ 
+          {# Attendee info — pre-filled from session #}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email (registered account)</label>
+            <input type="email" class="form-control" value="{{ session.get('email','') }}" disabled>
+            <div class="form-text">Your registration will be linked to this email.</div>
+          </div>
+ 
+          {# Promo code — live validation via JS #}
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Promo Code (optional)</label>
+            <div class="input-group">
+              <input type="text" id="promoCode" name="promo_code" class="form-control" placeholder="ENTER PROMO CODE">
+              <button type="button" class="btn btn-outline-secondary"
+                      onclick="applyPromo()">Apply</button>
+            </div>
+            <div id="promo_msg" class="form-text mt-1"></div>
+          </div>
+ 
+          {# Order total display #}
+          <div class="border rounded p-3 mb-4 bg-light">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Subtotal</span>
+              <span id="subtotal_display">₹{{ ticket.price }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1 d-none" id="discount_row">
+              <span class="text-success">Discount</span>
+              <span class="text-success" id="discount_display">-₹0</span>
+            </div>
+            <hr class="my-2">
+            <div class="d-flex justify-content-between fw-bold">
+              <span>Total</span>
+              <span id="total_display" class="text-primary fs-5">₹{{ ticket.price }}</span>
+            </div>
+          </div>
+ 
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-lg">
+              {% if ticket.price == 0 %}
+              <i class="bi bi-check-circle me-2"></i>Confirm Free Registration
+              {% else %}
+              <i class="bi bi-credit-card me-2"></i>Proceed to Payment
+              {% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+{% block extra_js %}
+<script>
+  const PRICE    = {{ ticket.price }};
+  const EVENT_ID = '{{ event.id }}';
+  let   discount = 0;
+ 
+  function updateTotal() {
+    const qty      = parseInt(document.getElementById('qty_select').value);
+    const subtotal = PRICE * qty;
+    const total    = Math.max(0, subtotal - discount);
+    document.getElementById('subtotal_display').textContent = '₹' + subtotal.toFixed(2);
+    document.getElementById('total_display').textContent   = '₹' + total.toFixed(2);
+  }
+ 
+  async function applyPromo() {
+    const code     = document.getElementById('promo_input').value.trim();
+    const qty      = parseInt(document.getElementById('qty_select').value);
+    const subtotal = PRICE * qty;
+    const msgEl    = document.getElementById('promo_msg');
+ 
+    if (!code) { msgEl.textContent = 'Enter a promo code first.'; return; }
+ 
+    const response = await fetch('/attendee/registration/validate-promo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: EVENT_ID, code, subtotal })
+    });
+    const data = await resp.json();
+ 
+    if (data.valid) {
+      discount = data.discount;
+      document.getElementById('hidden_promo').value = code;
+      document.getElementById('discount_display').textContent = '-₹' + discount.toFixed(2);
+      document.getElementById('discount_row').classList.remove('d-none');
+      msgEl.className = 'form-text text-success mt-1';
+      msgEl.textContent = data.message;
+      updateTotal();
+    } else {
+      discount = 0;
+      document.getElementById('hidden_promo').value = '';
+      document.getElementById('discount_row').classList.add('d-none');
+      msgEl.className = 'form-text text-danger mt-1';
+      msgEl.textContent = data.message;
+      updateTotal();
+    }
+  }
+</script>
+{% endblock %}
+{% endblock %}

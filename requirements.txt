@@ -1,0 +1,25 @@
+# Web framework
+Flask==3.0.3
+ 
+# Firebase Admin SDK — connects to Firestore and Firebase Auth
+firebase-admin==6.5.0
+ 
+# Open requirements.txt and add this line
+razorpay==1.4.1
+ 
+# SendGrid — sending confirmation emails
+sendgrid==6.11.0
+ 
+# QR code generation
+qrcode[pil]==7.4.2
+ 
+# Environment variable loading from .env file
+python-dotenv==1.0.1
+ 
+# CSRF protection for forms
+Flask-WTF==1.2.1
+
+cloudinary==1.39.0
+
+
+reportlab==4.1.0

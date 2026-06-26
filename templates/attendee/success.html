@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}Registration Confirmed - EMS{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Success Message -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="alert alert-success text-center" role="alert">
+                <h2 class="mb-2">
+                    <i class="bi bi-check-circle-fill"></i> Registration Confirmed!
+                </h2>
+                <p class="lead">Your registration for <strong>{{ event.name }}</strong> is complete.</p>
+                <p class="text-muted">A confirmation email with your ticket has been sent to <strong>{{ registration.attendee_email }}</strong></p>
+            </div>
+
+            <!-- Ticket Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-4">Your Ticket</h5>
+
+                    <!-- QR Code Placeholder (will be generated and stored in Firestore) -->
+                    <div class="text-center my-4">
+                         <p class="text-muted mb-2">Scan this QR code at the venue</p>
+                         {% if registration.qr_code_url %}
+                         <img src="{{ registration.qr_code_url }}" alt="Ticket QR Code" class="img-fluid border p-2 rounded" style="max-width: 250px;">
+                         {% else %}
+                         <div class="alert alert-warning">QR Code is generating... Please refresh the page in a moment.</div>
+                         {% endif %}
+                        </div>
+
+                    <!-- Registration Details -->
+                    <table class="table table-sm text-start">
+                        <tr>
+                            <td><strong>Name:</strong></td>
+                            <td>{{ registration.attendee_name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Email:</strong></td>
+                            <td>{{ registration.attendee_email }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Ticket Type:</strong></td>
+                            <td>{{ registration.ticket_type_name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Quantity:</strong></td>
+                            <td>{{ registration.quantity }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Amount:</strong></td>
+                            <td><strong class="text-success">₹{{ "%.2f"|format(registration.total_amount) }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Order Number:</strong></td>
+                            <td><code>{{ registration_id }}</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status:</strong></td>
+                            <td>
+                                <span class="badge bg-success">Confirmed</span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex gap-2 justify-content-center mb-4">
+                <a href="{{ url_for('public.event_detail', event_id=event.id) }}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left"></i> Back to Event
+                </a>
+                <a href="{{ url_for('attendee.my_events') }}" class="btn btn-primary">
+                    <i class="bi bi-ticket-perforated"></i> My Events
+                </a>
+            </div>
+
+            <!-- Next Steps -->
+            <div class="alert alert-info" role="alert">
+                <h6 class="alert-heading">What's Next?</h6>
+                <ul class="mb-0">
+                    <li>Check your email for the confirmation and QR code ticket</li>
+                    <li>Save your order number: <code>{{ registration_id }}</code></li>
+                    <li>Show the QR code at the event entrance for check-in</li>
+                    <li>Visit your event page to view the agenda and sessions</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

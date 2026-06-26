@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}My Events{% endblock %}
+ 
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0">My Events</h2>
+    <a href="{{ url_for('events.create_event') }}" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-2"></i>Create New Event
+    </a>
+  </div>
+ 
+  {% if not events %}
+  <div class="ems-card card text-center py-5">
+    <i class="bi bi-calendar-x fs-1 text-muted mb-3"></i>
+    <h5 class="text-muted">No events yet</h5>
+    <a href="{{ url_for('events.create_event') }}" class="btn btn-primary btn-sm mt-2">Create your first event</a>
+  </div>
+ 
+  {% else %}
+  {% for event in events %}
+  <div class="ems-card card mb-3 p-3">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+      <div>
+        <h5 class="fw-bold mb-1">{{ event.name }}</h5>
+        <p class="text-muted small mb-1">
+          <i class="bi bi-calendar3 me-1"></i>
+          {% if event.start_datetime %}{{ event.start_datetime.strftime('%b %d, %Y') }}{% endif %}
+        </p>
+        {# Status badge #}
+        {% set badge = {'published':'success','draft':'secondary','cancelled':'danger','completed':'primary'} %}
+        <span class="badge bg-{{ badge.get(event.status,'secondary') }}">
+          {{ event.status | capitalize }}
+        </span>
+      </div>
+ 
+      {# Metrics — wireframe page 6 #}
+      <div class="d-flex gap-3 text-center">
+        <div><div class="fw-bold fs-5">{{ event.total_registrations or 0 }}</div>
+             <div class="text-muted small">Registrations</div></div>
+        <div><div class="fw-bold fs-5">₹{{ event.total_revenue or 0 }}</div>
+             <div class="text-muted small">Revenue</div></div>
+        <div><div class="fw-bold fs-5">{{ event.total_checkins or 0 }}</div>
+             <div class="text-muted small">Check-ins</div></div>
+      </div>
+ 
+      {# Action buttons #}
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('public.event_detail', event_id=event.id) }}"
+           class="btn btn-sm btn-outline-secondary" target="_blank">
+          <i class="bi bi-eye me-1"></i>View
+        </a>
+        <a href="{{ url_for('events.edit_event', event_id=event.id) }}" 
+        class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-pencil me-1"></i>Edit
+      </a>
+      <!-- NEW ATTENDEES BUTTON -->
+       <a href="{{ url_for('events.event_attendees', event_id=event.id) }}" 
+       class="btn btn-sm btn-outline-info">
+       <i class="bi bi-people me-1"></i>Attendees
+      </a>
+      
+      <!-- Scanner button is below here... -->
+        <!-- NEW CHECK-IN BUTTON -->
+         {% if event.status == 'published' or event.status == 'completed' %}
+         <a href="{{ url_for('checkin.scanner', event_id=event.id) }}" 
+         class="btn btn-sm btn-outline-dark">
+         <i class="bi bi-qr-code-scan me-1"></i>Scanner
+        </a>
+        
+        <a href="{{ url_for('sessions.list_sessions', event_id=event.id) }}" 
+        class="btn btn-sm btn-outline-success">
+        <i class="bi bi-calendar-event me-1"></i>Agenda
+      </a>
+      <!-- Add this button inside the card actions in list.html -->
+       <a href="{{ url_for('promos.list_promos', event_id=event.id) }}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-tag"></i> Promos
+      </a>
+      <!-- Add this button inside the card actions in list.html -->
+       <a href="{{ url_for('events.view_waitlist', event_id=event.id) }}" class="btn btn-sm btn-outline-warning">
+        <i class="bi bi-person-lines-fill"></i> Waitlist
+      </a>
+      <a href="{{ url_for('events.event_analytics', event_id=event.id) }}" class="btn btn-sm btn-outline-info mt-1">
+        <i class="bi bi-graph-up"></i> Analytics
+      </a>
+      <a href="{{ url_for('events.view_feedback', event_id=event.id) }}" class="btn btn-sm btn-outline-warning text-dark">
+        <i class="bi bi-star-fill text-warning me-1"></i> Feedback
+      </a>
+      <a href="{{ url_for('sponsors.list_sponsors', event_id=event.id) }}"class="btn btn-sm btn-outline-warning">
+        <i class="bi bi-building me-1"></i>Sponsors
+      </a>
+      <a href="{{ url_for('events.sponsor_dashboard', event_id=event.id) }}"class="btn btn-sm btn-warning">
+        <i class="bi bi-bar-chart-fill me-1"></i>Sponsor Dashboard
+      </a>
+      <a href="{{ url_for('sponsors.list_exhibitors', event_id=event.id) }}"class="btn btn-sm btn-outline-warning">
+        <i class="bi bi-shop me-1"></i>Exhibitors
+      </a>
+      <a href="{{ url_for('events.sponsor_roi', event_id=event.id) }}"class="btn btn-sm btn-outline-success">
+        <i class="bi bi-graph-up-arrow me-1"></i>ROI
+      </a>
+        {% endif %}
+
+        {% if event.status == 'draft' %}
+        <form method="POST" action="{{ url_for('events.publish_event', event_id=event.id) }}" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-success">
+            <i class="bi bi-globe me-1"></i>Publish
+          </button>
+        </form>
+        {% endif %}
+        {% if event.status != 'cancelled' %}
+        <form method="POST" action="{{ url_for('events.delete_event', event_id=event.id) }}" class="d-inline"
+              onsubmit="return confirm('Cancel event: {{ event.name }}?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-x-circle me-1"></i>Cancel
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}
+

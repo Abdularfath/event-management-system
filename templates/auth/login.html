@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Login{% endblock %}
+ 
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card ems-card card p-4">
+ 
+    {# Header #}
+    <div class="text-center mb-4">
+      <i class="bi bi-calendar-event fs-1 text-primary"></i>
+      <h3 class="mt-2 fw-bold">Welcome back</h3>
+      <p class="text-muted small">Sign in to your EMS account</p>
+    </div>
+ 
+    {# Login form #}
+    <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+ 
+      {# CSRF token — Flask-WTF protection #}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+ 
+      {# Email #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Email address</label>
+        <input type="email" name="email" class="form-control"
+               placeholder="you@example.com" required autofocus
+               value="{{ request.form.get('email', '') }}">
+      </div>
+ 
+      {# Password #}
+      <div class="mb-3">
+        <div class="d-flex justify-content-between">
+          <label class="form-label fw-semibold">Password</label>
+          <a href="{{ url_for('auth.forgot_password') }}" class="small text-decoration-none">
+            Forgot password?</a>
+        </div>
+        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+      </div>
+ 
+      {# Role selector #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">I am signing in as</label>
+        <select name="role_hint" class="form-select">
+          <option value="attendee">Attendee</option>
+          <option value="organizer">Organizer</option>
+          <option value="sponsor">Sponsor</option>
+          <option value="admin">Admin</option> 
+          <option value="super_admin">Super Admin</option>  
+        </select>
+        <div class="form-text">This helps us redirect you to the right dashboard.</div>
+      </div>
+ 
+      {# Submit #}
+      <div class="d-grid mb-3">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Login
+        </button>
+      </div>
+ 
+    </form>
+ 
+    {# Sign up link #}
+    <p class="text-center text-muted small mb-0">
+      Don't have an account?
+      <a href="{{ url_for('auth.signup') }}" class="text-decoration-none fw-semibold">Sign up</a>
+    </p>
+ 
+  </div>
+</div>
+{% endblock %}

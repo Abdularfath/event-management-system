@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Check-In Scanner{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1"><i class="bi bi-qr-code-scan me-2 text-primary"></i>Check-In Scanner</h3>
+            <p class="text-muted mb-0">Scanning tickets for: <strong>{{ event.name }}</strong></p>
+        </div>
+        <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-secondary">Back to Events</a>
+    </div>
+
+    <div class="row">
+        <!-- Camera Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div id="reader" width="100%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="fw-bold border-bottom pb-2">Scan Results</h5>
+                    
+                    <!-- THIS IS THE BOX THAT TURNS RED/GREEN -->
+                    <div id="result-message" class="alert alert-secondary mt-3 fs-5 text-center" role="alert">
+                        Ready. Point camera at a ticket.
+                    </div>
+                    
+                    <ul class="list-group mt-3 d-none" id="attendee-details">
+                        <li class="list-group-item fs-5"><strong>Name:</strong> <span id="r-name" class="float-end">-</span></li>
+                        <li class="list-group-item fs-5"><strong>Ticket:</strong> <span id="r-ticket" class="float-end">-</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load HTML5 QR Code Library -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    const eventId = "{{ event_id }}";
+    const resultAlert = document.getElementById('result-message');
+    const detailsList = document.getElementById('attendee-details');
+    const rName = document.getElementById('r-name');
+    const rTicket = document.getElementById('r-ticket');
+    
+    let isScanning = true;
+
+    function onScanSuccess(decodedText, decodedResult) {
+        if (!isScanning) return;
+        isScanning = false;
+        
+        detailsList.classList.add('d-none');
+        resultAlert.className = 'alert alert-info text-center fs-5 mt-3';
+        resultAlert.innerText = 'Verifying Ticket...';
+
+        fetch(`/organizer/events/${eventId}/checkin/verify`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ qr_payload: decodedText })
+        })
+                .then(res => res.json())
+        .then(data => {
+            console.log("Server Response:", data);
+            
+            // ADD THIS LINE FOR A TRUE POPUP:
+            alert(data.message);
+            
+            if (data.success) {
+                resultAlert.className = 'alert alert-success fw-bold text-center fs-5 mt-3';
+                resultAlert.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>${data.message}`;
+                rName.innerText = data.attendee_name;
+                rTicket.innerText = data.ticket_type;
+                detailsList.classList.remove('d-none');
+            } else {
+                resultAlert.className = 'alert alert-danger fw-bold text-center fs-5 mt-3';
+                resultAlert.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>${data.message}`;
+                detailsList.classList.add('d-none');
+            }
+            
+            setTimeout(() => { isScanning = true; }, 3000);
+        })
+        .catch(err => {
+            console.error("Fetch Error:", err);
+            resultAlert.className = 'alert alert-danger text-center fs-5 mt-3';
+            resultAlert.innerText = 'Error connecting to server.';
+            setTimeout(() => { isScanning = true; }, 3000);
+        });
+    }
+
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 10, qrbox: {width: 250, height: 250} },
+        /* verbose= */ false);
+    html5QrcodeScanner.render(onScanSuccess);
+</script>
+{% endblock %}

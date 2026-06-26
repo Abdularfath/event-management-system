@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="bi bi-shield-lock-fill text-danger me-2"></i>System Administration</h2>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="px-4 py-3">User</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td class="px-4 py-3 fw-bold">{{ user.name | default('Unknown') }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <span class="badge bg-dark">{{ user.role | capitalize }}</span>
+                        </td>
+                        <td>
+                            {% if user.status == 'suspended' %}
+                                <span class="badge bg-danger">Suspended</span>
+                            {% else %}
+                                <span class="badge bg-success">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <!-- Prevent the admin from suspending themselves -->
+                            {% if user.id != session.uid %}
+                                <form action="{{ url_for('admin.toggle_user', uid=user.id) }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    {% if user.status == 'suspended' %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success">Reactivate</button>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Suspend</button>
+                                    {% endif %}
+                                </form>
+                            {% else %}
+                                <span class="text-muted small">You (Admin)</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

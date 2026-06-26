@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %}Organizer Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Welcome Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Welcome back, Organizer! 👋</h2>
+            <p class="text-muted mb-0">Here is what's happening with your events today.</p>
+        </div>
+        <a href="{{ url_for('events.create_event') }}" class="btn btn-primary shadow-sm">
+            <i class="bi bi-plus-lg me-1"></i> Create New Event
+        </a>
+    </div>
+
+    <!-- Analytics Cards Row -->
+    <div class="row g-4 mb-5">
+        <!-- Total Revenue -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card shadow-sm border-0 h-100 bg-primary text-white">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="mb-1 text-white-50 fw-semibold text-uppercase" style="letter-spacing: 1px; font-size: 0.8rem;">Total Revenue</p>
+                            <h3 class="fw-bold mb-0">₹{{ total_revenue }}</h3>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded p-2">
+                            <i class="bi bi-currency-rupee fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Tickets Sold -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-1 fw-semibold text-uppercase" style="letter-spacing: 1px; font-size: 0.8rem;">Tickets Sold</p>
+                            <h3 class="fw-bold mb-0 text-dark">{{ total_tickets }}</h3>
+                        </div>
+                        <div class="bg-success bg-opacity-10 text-success rounded p-2">
+                            <i class="bi bi-ticket-perforated fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Check-ins -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-1 fw-semibold text-uppercase" style="letter-spacing: 1px; font-size: 0.8rem;">Total Check-ins</p>
+                            <h3 class="fw-bold mb-0 text-dark">{{ total_checkins }}</h3>
+                        </div>
+                        <div class="bg-info bg-opacity-10 text-info rounded p-2">
+                            <i class="bi bi-person-check fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Events -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-1 fw-semibold text-uppercase" style="letter-spacing: 1px; font-size: 0.8rem;">Active Events</p>
+                            <h3 class="fw-bold mb-0 text-dark">{{ total_events }}</h3>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 text-warning rounded p-2">
+                            <i class="bi bi-calendar-event fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Section -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-activity me-2 text-primary"></i>Recent Registrations</h5>
+            <a href="{{ url_for('events.list_events') }}" class="btn btn-sm btn-outline-secondary">View All Events</a>
+        </div>
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="px-4 py-3">Attendee</th>
+                        <th>Ticket Type</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if recent_regs %}
+                        {% for reg in recent_regs %}
+                        <tr>
+                            <td class="px-4 py-3">
+                                <div class="fw-bold">{{ reg.attendee_name }}</div>
+                                <div class="text-muted small">{{ reg.attendee_email }}</div>
+                            </td>
+                            <td>{{ reg.ticket_type_name }}</td>
+                            <td><span class="text-success fw-semibold">+₹{{ reg.total_amount }}</span></td>
+                            <td>
+                                {% if reg.created_at %}
+                                    {{ reg.created_at.strftime('%b %d, %I:%M %p') }}
+                                {% else %}
+                                    Just now
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if reg.status == 'checked_in' %}
+                                    <span class="badge bg-success">Checked In</span>
+                                {% else %}
+                                    <span class="badge bg-primary">Confirmed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-wind fs-1 d-block mb-2"></i>
+                                No recent activity. Promote your event to get your first sale!
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

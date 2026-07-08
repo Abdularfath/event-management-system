@@ -69,6 +69,84 @@ def my_events():
     return render_template('attendee/my_events.html',
                            upcoming=upcoming,
                            past=past)
+
+
+@attendee_bp.route('/my-certificates')
+@login_required
+@role_required('attendee')
+def my_certificates():
+    uid = session.get('uid')
+    reg_docs = db.collection('registrations').where('attendee_uid', '==', uid).stream()
+
+    certificates = []
+    for r in reg_docs:
+        reg = r.to_dict()
+        if not reg.get('certificate_url'):
+            continue
+        event_doc = db.collection('events').document(reg['event_id']).get()
+        event_data = event_doc.to_dict() if event_doc.exists else {}
+        certificates.append({
+            'reg_id':          r.id,
+            'event_name':      event_data.get('name', 'Unknown Event'),
+            'certificate_url': reg['certificate_url'],
+            'generated_at':    reg.get('certificate_generated_at'),
+        })
+
+    certificates.sort(
+        key=lambda c: c['generated_at'] or datetime.min.replace(tzinfo=timezone.utc),
+        reverse=True
+    )
+
+    return render_template('attendee/my_certificates.html', certificates=certificates)
+
+
+@attendee_bp.route('/notifications')
+@login_required
+@role_required('attendee')
+def list_notifications():
+    """Returns the attendee's most recent in-app notifications as JSON, for the navbar bell."""
+    from flask import jsonify
+    from google.cloud.firestore import Query
+
+    uid = session.get('uid')
+    docs = (db.collection('notifications').document(uid).collection('items')
+            .order_by('created_at', direction=Query.DESCENDING)
+            .limit(15).stream())
+
+    items = []
+    unread_count = 0
+    for d in docs:
+        n = d.to_dict()
+        if not n.get('read'):
+            unread_count += 1
+        items.append({
+            'id':         d.id,
+            'title':      n.get('title', ''),
+            'message':    n.get('message', ''),
+            'type':       n.get('type', 'info'),
+            'read':       n.get('read', False),
+            'event_id':   n.get('event_id'),
+            'created_at': n.get('created_at').strftime('%b %d, %H:%M') if n.get('created_at') else '',
+        })
+
+    return jsonify({'notifications': items, 'unread_count': unread_count})
+
+
+@attendee_bp.route('/notifications/mark-all-read', methods=['POST'])
+@login_required
+@role_required('attendee')
+def mark_all_notifications_read():
+    from flask import jsonify
+
+    uid = session.get('uid')
+    docs = (db.collection('notifications').document(uid).collection('items')
+            .where('read', '==', False).stream())
+    for d in docs:
+        db.collection('notifications').document(uid).collection('items').document(d.id).update({'read': True})
+
+    return jsonify({'success': True})
+
+
 @attendee_bp.route('/save_session/<event_id>/<session_id>', methods=['POST'])
 @login_required
 @role_required('attendee')

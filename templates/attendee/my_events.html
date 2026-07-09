@@ -124,7 +124,9 @@
                             </p>
                             <p class="text-muted small mb-0">
                                 <i class="bi bi-calendar me-1"></i>
-                                {{ reg.event.start_date }} → {{ reg.event.end_date }}
+                                {% if reg.event.start_datetime and reg.event.end_datetime %}
+                                {{ reg.event.start_datetime.strftime('%b %d, %Y') }} → {{ reg.event.end_datetime.strftime('%b %d, %Y') }}
+                                {% endif %}
                             </p>
                         </div>
                         <span class="badge bg-secondary align-self-start">

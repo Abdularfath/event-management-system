@@ -24,6 +24,7 @@ from flask import abort
 from app.utils.email_utils import send_ticket_email, send_email_with_attachment
 from app.utils.notification_utils import create_notification
 from app.utils.razorpay_utils import create_refund
+from app.utils.event_utils import is_event_over
  
 events_bp = Blueprint('events', __name__, url_prefix='/organizer/events')
  
@@ -325,6 +326,29 @@ def delete_event(event_id):
 
     flash(f"Event '{data['name']}' has been cancelled. Registered attendees have been notified and refunded.", 'info')
     return redirect(url_for('events.list_events'))
+
+@events_bp.route('/<event_id>/mark-completed', methods=['POST'])
+@login_required
+@role_required('organizer')
+def mark_event_completed(event_id):
+    """Lets an organizer explicitly close out an event before its scheduled
+    end_datetime has passed (e.g. ending a multi-day event early)."""
+    doc, data = get_event_or_403(event_id)
+    if doc is None:
+        flash('Event not found or access denied.', 'danger')
+        return redirect(url_for('events.list_events'))
+
+    if data.get('status') == 'cancelled':
+        flash('A cancelled event cannot be marked as completed.', 'warning')
+        return redirect(url_for('events.event_attendees', event_id=event_id))
+
+    db.collection('events').document(event_id).update({
+        'status':        'completed',
+        'completed_at':  SERVER_TIMESTAMP,
+    })
+
+    flash(f"'{data['name']}' has been marked as completed. Certificates can now be generated.", 'success')
+    return redirect(url_for('events.event_attendees', event_id=event_id))
 # ── ATTENDEE LIST ───────────────────────────────────────────────────────
 @events_bp.route('/<event_id>/attendees')
 @login_required
@@ -343,8 +367,9 @@ def event_attendees(event_id):
     # Sort attendees by name in Python (avoids needing a complex Firestore index)
     attendees.sort(key=lambda x: x.get('attendee_name', '').lower())
 
-    # FIXED: Added 'return' and changed 'event=event' to 'event=data'
-    return render_template('organizer/events/attendees.html', event=data, attendees=attendees, event_id=event_id)
+    return render_template('organizer/events/attendees.html',
+                            event=data, attendees=attendees, event_id=event_id,
+                            event_is_over=is_event_over(data))
 
 # ── EXPORT CSV ──────────────────────────────────────────────────────────
 @events_bp.route('/<event_id>/export')
@@ -619,16 +644,7 @@ def _generate_certificate_pdf(event_id, reg_id):
     return pdf_out, reg_data, event_data, None
 
 
-def is_event_over(event_data):
-    """True once the organizer marks the event completed, OR its end_datetime has passed."""
-    if event_data.get('status') == 'completed':
-        return True
-    end_dt = event_data.get('end_datetime')
-    if end_dt:
-        if getattr(end_dt, 'tzinfo', None) is None:
-            end_dt = end_dt.replace(tzinfo=timezone.utc)
-        return datetime.now(timezone.utc) > end_dt
-    return False
+@events_bp.route('/<event_id>/certificate/settings/preview')
 
 
 @events_bp.route('/<event_id>/certificate/settings/preview')

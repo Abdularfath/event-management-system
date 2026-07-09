@@ -19,7 +19,7 @@
             <a href="{{ url_for('events.certificate_settings', event_id=event_id) }}" class="btn btn-outline-primary">
                 <i class="bi bi-award me-1"></i> Certificate Settings
             </a>
-            {% if event.status == 'completed' %}
+            {% if event_is_over %}
             <form action="{{ url_for('events.generate_certificates_bulk', event_id=event_id) }}" method="POST"
                   class="d-inline"
                   onsubmit="return confirm('Generate certificates for every checked-in attendee? This will notify them all.');">
@@ -30,9 +30,19 @@
             </form>
             {% else %}
             <button type="button" class="btn btn-outline-secondary ms-2" disabled
-                    title="Mark this event as completed first">
+                    title="This event's end date hasn't passed yet">
                 <i class="bi bi-collection me-1"></i> Generate Certificates for All
             </button>
+            {% if event.status not in ['completed', 'cancelled'] %}
+            <form action="{{ url_for('events.mark_event_completed', event_id=event_id) }}" method="POST"
+                  class="d-inline"
+                  onsubmit="return confirm('Mark this event as completed now, even though its scheduled end date hasn\'t passed yet?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn btn-outline-warning ms-2">
+                    <i class="bi bi-flag me-1"></i> Mark as Completed
+                </button>
+            </form>
+            {% endif %}
             {% endif %}
             <a href="{{ url_for('events.export_attendees', event_id=event_id) }}" class="btn btn-success ms-2">
                 <i class="bi bi-file-earmark-spreadsheet me-1"></i> Download CSV

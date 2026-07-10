@@ -136,6 +136,38 @@ def notify_event_cancelled_and_refund(event_id, event_name):
             )
         except Exception as e:
             print(f"[ERROR] Cancellation email failed: {e}")
+
+def notify_new_event_published(organizer_uid, event_id, event_name):
+    """In-app notification to anyone who has previously attended (confirmed/
+    checked-in) an event by this same organizer, when they publish a new one."""
+    organizer_event_docs = (
+        db.collection('events')
+        .where('organizer_uid', '==', organizer_uid)
+        .stream()
+    )
+    past_event_ids = [d.id for d in organizer_event_docs if d.id != event_id]
+    if not past_event_ids:
+        return
+
+    notified_uids = set()
+    # Firestore 'in' queries cap at 30 values — chunk if this organizer has more events
+    for i in range(0, len(past_event_ids), 30):
+        chunk = past_event_ids[i:i + 30]
+        reg_docs = (
+            db.collection('registrations')
+            .where('event_id', 'in', chunk)
+            .where('status', 'in', ['confirmed', 'checked_in'])
+            .stream()
+        )
+        for r in reg_docs:
+            uid = r.to_dict().get('attendee_uid')
+            if uid and uid not in notified_uids:
+                notified_uids.add(uid)
+                create_notification(
+                    uid, 'New event from an organizer you know!',
+                    f"{event_name} was just published — check it out.",
+                    event_id=event_id, notif_type='new_event'
+                )
  
  
 # ── Helper: get event + verify ownership ─────────────────────────────
@@ -217,6 +249,9 @@ def create_event():
             'published_at':   SERVER_TIMESTAMP if status=='published' else None,
         })
  
+        if status == 'published':
+            notify_new_event_published(session['uid'], ref.id, form_data['name'].strip())
+
         flash(f"Event '{form_data['name']}' {status}!",'success')
         return redirect(url_for('events.list_events'))
  
@@ -303,6 +338,9 @@ def publish_event(event_id):
         'status':       'published',
         'published_at': SERVER_TIMESTAMP
     })
+
+    notify_new_event_published(session['uid'], event_id, data['name'])
+
     flash(f"Event '{data['name']}' is now published!",'success')
     return redirect(url_for('events.list_events'))
  

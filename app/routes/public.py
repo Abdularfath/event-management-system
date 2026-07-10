@@ -2,6 +2,7 @@ from flask import (Blueprint, render_template, request, redirect, jsonify,
                         abort, flash, redirect, url_for, session)
 from app.firebase_config import db
 from app.utils.event_utils import is_event_over
+from google.cloud.firestore import Query
  
 public_bp = Blueprint('public', __name__)
  
@@ -132,6 +133,14 @@ def event_detail(event_id):
     sponsors   = [s for s in all_sponsors if not s.get('is_exhibitor', False)]
     exhibitors = [s for s in all_sponsors if s.get('is_exhibitor', False)]
 
+    # Public-facing rating: average + count only, individual comments stay
+    # organizer-only (attendees never explicitly consented to public display
+    # of their written feedback).
+    feedback_docs = db.collection('events').document(event_id).collection('feedback').stream()
+    ratings = [f.to_dict().get('rating', 0) for f in feedback_docs]
+    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else None
+    review_count = len(ratings)
+
     return render_template('public/event_detail.html',
                            event=event,
                            venue=venue,
@@ -140,7 +149,9 @@ def event_detail(event_id):
                            saved_session_ids=saved_session_ids,
                            sponsors=sponsors,
                            exhibitors=exhibitors,
-                           event_is_over=event_is_over)
+                           event_is_over=event_is_over,
+                           avg_rating=avg_rating,
+                           review_count=review_count)
 @public_bp.route('/api/events/<event_id>/validate_promo/<code>', methods=['GET'])
 def validate_promo(event_id, code):
     """API Endpoint to validate a promo code via AJAX."""

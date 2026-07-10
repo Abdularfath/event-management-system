@@ -194,6 +194,24 @@ def join_waitlist(event_id, ticket_type_id):
 @login_required
 @role_required('attendee')
 def submit_feedback(event_id, registration_id):
+    # Ownership + eligibility check: only the attendee who actually checked
+    # in, and only after the event has ended, can leave a review. Prevents
+    # reviews from no-shows or before the event has even happened.
+    reg_doc = db.collection('registrations').document(registration_id).get()
+    if not reg_doc.exists or reg_doc.to_dict().get('attendee_uid') != session.get('uid'):
+        flash('Registration not found.', 'danger')
+        return redirect(url_for('attendee.my_events'))
+
+    reg_data = reg_doc.to_dict()
+    if reg_data.get('status') != 'checked_in':
+        flash('Reviews can only be submitted by attendees who checked in.', 'warning')
+        return redirect(url_for('attendee.my_events'))
+
+    event_doc_check = db.collection('events').document(event_id).get()
+    if not event_doc_check.exists or not is_event_over(event_doc_check.to_dict()):
+        flash('You can leave a review once the event has ended.', 'warning')
+        return redirect(url_for('attendee.my_events'))
+
     # Check if feedback already exists to prevent duplicates
     feedback_ref = db.collection('events').document(event_id).collection('feedback').document(registration_id)
     

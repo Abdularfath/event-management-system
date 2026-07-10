@@ -149,7 +149,7 @@
                         {% else %}bg-primary{% endif %} mb-2">
                         {{ sponsor.tier }} Sponsor
                     </span>
-                    {% if session.get('role') == 'attendee' %}
+                    {% if session.get('role') == 'attendee' and not event_is_over %}
                     <form method="POST"
                           action="{{ url_for('attendee.connect_sponsor',
                                             event_id=event.id,
@@ -234,7 +234,7 @@
                             </p>
                             {% endif %}
 
-                            {% if session.get('role') == 'attendee' %}
+                            {% if session.get('role') == 'attendee' and not event_is_over %}
                             <form method="POST"
                                   action="{{ url_for('attendee.connect_sponsor',
                                                     event_id=event.id,
@@ -276,7 +276,13 @@
       <i class="bi bi-ticket-perforated me-2 text-primary"></i>Ticket Types
     </h5>
 
-    {% if not ticket_types %}
+   {% if event_is_over %}
+    <div class="alert alert-secondary text-center mb-0">
+      <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
+      <strong>This event has ended.</strong>
+      <p class="small mb-0 mt-1">Registration and ticket purchases are closed.</p>
+    </div>
+    {% elif not ticket_types %}
     <p class="text-muted">No tickets available yet.</p>
     {% else %}
 

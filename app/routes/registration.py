@@ -6,6 +6,7 @@ from app.decorators import login_required
 from app.utils.qr_utils import generate_and_upload_qr
 from datetime import datetime, timezone
 from google.cloud.firestore import SERVER_TIMESTAMP, Increment
+from app.utils.event_utils import is_event_over
 from dotenv import load_dotenv
 from app.utils.razorpay_utils import create_refund
 from app.utils.notification_utils import create_notification
@@ -234,10 +235,15 @@ def _confirm_free_order(order_id, event_id, promo_id):
 
 
 # ── NEW: cart checkout — supports multiple ticket types in one order ──
+
 @registration_bp.route('/<event_id>/cart-checkout', methods=['POST'])
 @login_required
 def cart_checkout(event_id):
     event, tickets_by_id = get_event_and_all_tickets(event_id)
+
+    if is_event_over(event):
+        flash('This event has already ended and is no longer accepting registrations.', 'warning')
+        return redirect(url_for('public.event_detail', event_id=event_id))
 
     cart_items = []
     for key, value in request.form.items():
@@ -275,6 +281,10 @@ def cart_checkout(event_id):
 @login_required
 def register(event_id, ticket_type_id):
     event, ticket = get_event_and_ticket(event_id, ticket_type_id)
+
+    if is_event_over(event):
+        flash('This event has already ended and is no longer accepting registrations.', 'warning')
+        return redirect(url_for('public.event_detail', event_id=event_id))
 
     available = ticket.get('quantity_total', 0) - ticket.get('quantity_sold', 0)
     if available <= 0:

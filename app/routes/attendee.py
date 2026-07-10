@@ -161,6 +161,11 @@ def join_waitlist(event_id, ticket_type_id):
     uid = session.get('uid')
     email = session.get('email')
 
+    event_doc = db.collection('events').document(event_id).get()
+    if not event_doc.exists or is_event_over(event_doc.to_dict()):
+        flash('This event has already ended — waitlist is closed.', 'warning')
+        return redirect(url_for('public.event_detail', event_id=event_id))
+
     # Check if they are already on the waitlist
     existing = db.collection('events').document(event_id).collection('waitlist') \
                  .where('attendee_uid', '==', uid) \
@@ -223,6 +228,11 @@ def connect_sponsor(event_id, sponsor_id):
     uid   = session.get('uid')
     email = session.get('email')
     name  = session.get('name', '')
+
+    event_doc = db.collection('events').document(event_id).get()
+    if not event_doc.exists or is_event_over(event_doc.to_dict()):
+        flash('This event has ended — sponsor connections are closed.', 'warning')
+        return redirect(url_for('public.event_detail', event_id=event_id))
 
     # Check if already connected
     existing = db.collection('events').document(event_id)\

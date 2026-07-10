@@ -1,6 +1,7 @@
 from flask import (Blueprint, render_template, request, redirect, jsonify,
                         abort, flash, redirect, url_for, session)
 from app.firebase_config import db
+from app.utils.event_utils import is_event_over
  
 public_bp = Blueprint('public', __name__)
  
@@ -21,6 +22,13 @@ def index():
     events = []
     for doc in docs:
         data = {**doc.to_dict(), 'id': doc.id}
+
+        # Ended events are no longer discoverable through browsing — the detail
+        # page/registration links still work for anyone who already has them
+        # (receipts, certificates, "view my event"), but they don't surface
+        # here for new visitors to find and register for.
+        if is_event_over(data):
+            continue
  
         # Get venue name for display on the card
         venue_name = 'Venue TBD'
@@ -52,9 +60,14 @@ def event_detail(event_id):
  
     event = {**doc.to_dict(), 'id': doc.id}
  
-    # Only show published events to the public
-    if event.get('status') != 'published':
+    # Show published events, AND completed ones (an event manually marked
+    # "completed" or whose date has simply passed must still be reachable —
+    # attendees need this page for their certificates, ticket history, etc.).
+    # Draft and cancelled events stay hidden from the public.
+    if event.get('status') not in ('published', 'completed'):
         abort(404)
+
+    event_is_over = is_event_over(event)
  
     # Fetch venue details
     venue = None
@@ -126,7 +139,8 @@ def event_detail(event_id):
                            agenda=agenda,
                            saved_session_ids=saved_session_ids,
                            sponsors=sponsors,
-                           exhibitors=exhibitors)
+                           exhibitors=exhibitors,
+                           event_is_over=event_is_over)
 @public_bp.route('/api/events/<event_id>/validate_promo/<code>', methods=['GET'])
 def validate_promo(event_id, code):
     """API Endpoint to validate a promo code via AJAX."""

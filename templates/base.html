@@ -223,17 +223,19 @@
   {# Auto-dismiss flash messages after 4 seconds #}
   <script>
     setTimeout(() => {
-      document.querySelectorAll('.alert').forEach(a => {
+      document.querySelectorAll('.flash-container .alert').forEach(a => {
         let bsAlert = bootstrap.Alert.getOrCreateInstance(a);
         bsAlert.close();
       });
     }, 4000);
   </script>
   <script>
-    // Auto-dismiss Flash Alerts after 4 seconds
+    // Auto-dismiss Flash Alerts after 4 seconds — scoped to .flash-container
+    // only, so other page content styled with Bootstrap's .alert class
+    // (e.g. the cancellation policy box, info panels) is never auto-closed.
     document.addEventListener("DOMContentLoaded", function() {
         setTimeout(function() {
-            let alerts = document.querySelectorAll('.alert');
+            let alerts = document.querySelectorAll('.flash-container .alert');
             alerts.forEach(function(alert) {
                 // Use Bootstrap's built-in alert close method
                 let bsAlert = new bootstrap.Alert(alert);
